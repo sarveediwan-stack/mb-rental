@@ -40,9 +40,14 @@ def ensure_data_dir():
 def load_and_process_data(uploaded_file):
     # Use hardcoded file path instead of uploaded_file
     file_path = "data/rental_data.csv"  # This file should be in your GitHub repo
+    st.write(f"Looking for file at: {file_path}")
+    st.write(f"File exists: {os.path.exists(file_path)}")
+
     
     try:
         df_raw = pd.read_csv(file_path)
+        st.write(f"Successfully loaded file with {len(df_raw)} rows")
+
 
         # Read the uploaded file
         df_raw = pd.read_csv(uploaded_file)
