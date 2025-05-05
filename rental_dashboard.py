@@ -40,13 +40,9 @@ def ensure_data_dir():
 def load_and_process_data():
     # Use hardcoded file path instead of uploaded_file
     file_path = "data/magicbricks_hyderabad_properties_compressed.csv"  # This file should be in your GitHub repo
-    st.write(f"Looking for file at: {file_path}")
-    st.write(f"File exists: {os.path.exists(file_path)}")
-
     
     try:
         df_raw = pd.read_csv(file_path)
-        st.write(f"Successfully loaded file with {len(df_raw)} rows")
         
         # Rename and normalize column names
         df_raw.columns = df_raw.columns.str.strip().str.lower()
