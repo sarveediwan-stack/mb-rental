@@ -75,6 +75,14 @@ def load_and_process_data(uploaded_file):
     
     df = df_raw.rename(columns=rename_map)
     
+    # Extract amenity columns
+    amenity_cols = [col for col in df.columns if col.startswith('detail_amenitymap_') or col.startswith('detail_amenityexternalmap_')]
+    amenity_df = df[amenity_cols].copy()
+    amenity_df.columns = [col.replace('detail_amenitymap_', '').replace('detail_amenityexternalmap_', '') for col in amenity_cols]
+    amenity_df = amenity_df.fillna(0).applymap(lambda x: 1 if str(x).strip().lower() in ['true', '1', 'yes', 'present'] else 0)
+
+    # Concatenate back to main df
+    df = pd.concat([df, amenity_df], axis=1)
     # Filter for necessary columns
     required_cols = [
         'locality', 'society', 'property_type', 'builtup_area', 'bedrooms', 'bathrooms', 'furnishing',
@@ -328,6 +336,57 @@ def find_comparables(df, label_encoders, society, bhk, lat, lon, radius_km=2.0):
         st.error(f"Error finding comparable properties: {e}")
         return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
+# Function to calculate base rent per square foot
+def get_base_rent_per_sqft(df, label_encoders, locality, society):
+    try:
+        # Use most common furnishing type as base
+        if 'furnishing' in df.columns:
+            base_df = df[(df['furnishing'] == df['furnishing'].mode()[0])]
+        else:
+            base_df = df.copy()
+        
+        # Encode the inputs
+        locality_encoded = label_encoders['locality'].transform([locality])[0] if 'locality' in label_encoders else -1
+        society_encoded = label_encoders['society'].transform([society])[0] if 'society' in label_encoders else -1
+        
+        # Filter using encoded values
+        soc_df = base_df[base_df['society'] == society_encoded] if society_encoded != -1 else pd.DataFrame()
+        loc_df = base_df[base_df['locality'] == locality_encoded] if locality_encoded != -1 else pd.DataFrame()
+        
+        # Calculate rent per square foot
+        soc_rent_psf = (soc_df['rent'].sum() / soc_df['builtup_area'].sum() 
+                        if not soc_df.empty and 'rent' in soc_df.columns 
+                        and 'builtup_area' in soc_df.columns 
+                        and soc_df['builtup_area'].sum() > 0 else 0)
+        
+        loc_rent_psf = (loc_df['rent'].sum() / loc_df['builtup_area'].sum() 
+                        if not loc_df.empty and 'rent' in loc_df.columns 
+                        and 'builtup_area' in loc_df.columns 
+                        and loc_df['builtup_area'].sum() > 0 else 0)
+        
+        return soc_rent_psf if soc_rent_psf > 0 else loc_rent_psf
+    except Exception as e:
+        st.error(f"Error calculating rent per square foot: {e}")
+        return 0
+
+# Function to adjust rent for furnishing
+def adjust_rent_for_furnishing(base_rent, furnishing):
+    if furnishing == 'Furnished':
+        return base_rent * 1.1
+    elif furnishing == 'UnFurnished':
+        return base_rent * 0.95
+    return base_rent
+
+# Function to estimate rent using alternative method
+def estimate_rent_alternative(df, label_encoders, area, locality, society, furnishing):
+    try:
+        base_rent_psf = get_base_rent_per_sqft(df, label_encoders, locality, society)
+        base_rent = base_rent_psf * area
+        adjusted_rent = adjust_rent_for_furnishing(base_rent, furnishing)
+        return adjusted_rent
+    except Exception as e:
+        st.error(f"Error estimating alternative rent: {e}")
+        return 0
 # Main app logic
 if uploaded_file is not None:
     # Process the data
@@ -396,15 +455,20 @@ if uploaded_file is not None:
                     with st.spinner("Predicting..."):
                         # ML-based Prediction
                         results = predict_rent_dual(input_property, models, label_encoders)
-                    
+                        estimated_rent = estimate_rent_alternative(df,label_encoders,area=input_property['builtup_area'],locality=input_property['locality'],society=input_property['society'],furnishing=input_property['furnishing'])
+
                     # Display results in columns
-                    col1, col2 = st.columns(2)
-                    
+                    col1, col2, col3 = st.columns(3)
+
                     with col1:
                         st.metric("Model A (Raw Rent)", f"₹{results['model_a_raw_prediction']:,.0f}/month")
-                    
+
                     with col2:
                         st.metric("Model B (Log Rent)", f"₹{results['model_b_log_prediction']:,.0f}/month")
+
+                    with col3:
+                        st.metric("Rent/sqft Estimate", f"₹{estimated_rent:,.0f}/month")
+
                     
                     # Display explanation
                     with st.expander("Model Explanation"):
@@ -414,6 +478,9 @@ if uploaded_file is not None:
                         **Model A (Raw Rent)**: Trained on actual rent values. Performs well for properties in the middle price range.
                         
                         **Model B (Log Rent)**: Trained on log-transformed rent values, which helps to handle the skewed distribution of rent prices. Often performs better for high-end or low-end properties.
+                                 
+                        **Rent/sqft Estimate**: Calculates the average rent per square foot for the selected society (or locality if society data is insufficient) and multiplies it by the area. Adjusted based on furnishing type.
+
                         """)
                         
                         # Display model metrics
