@@ -39,7 +39,7 @@ def ensure_data_dir():
 # Function to load and preprocess data
 def load_and_process_data():
     # Use hardcoded file path instead of uploaded_file
-    file_path = "data/rental_data.csv"  # This file should be in your GitHub repo
+    file_path = "data/magicbricks_hyderabad_properties_compressed.csv"  # This file should be in your GitHub repo
     st.write(f"Looking for file at: {file_path}")
     st.write(f"File exists: {os.path.exists(file_path)}")
 
