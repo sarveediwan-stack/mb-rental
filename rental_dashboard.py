@@ -100,12 +100,12 @@ def load_and_process_data():
             lower_bound = Q1 - 1.5 * IQR
             upper_bound = Q3 + 1.5 * IQR
             return df[(df[column] >= lower_bound) & (df[column] <= upper_bound)]
-        st.success(f"✅ Data AFTER OUTLIER successfully: {len(df)} properties")
+        
         # for col in ['rent', 'builtup_area', 'total_floors']:
         for col in ['rent']:
             if col in df.columns:
                 df = remove_outliers(df, col)
-
+        st.success(f"✅ Data AFTER OUTLIER successfully: {len(df)} properties")
         # Extract amenity columns
         amenity_cols = [col for col in df.columns if col.startswith('detail_amenitymap_') or col.startswith('detail_amenityexternalmap_')]
         amenity_df = df[amenity_cols].copy()
