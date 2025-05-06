@@ -473,7 +473,7 @@ def generate_shap_waterfall(model, features, input_data, feature_names, label_en
             decoded_feature_names[idx] = f"{col}: {original_value}"
     
     # Create waterfall plot
-    fig = plt.figure(figsize=(10, 8))
+    fig = plt.figure(figsize=(8, 6))
     max_features_to_show = min(len(features), 10)  # Limit to top 10 features
     shap_values.feature_names = decoded_feature_names
     shap.plots.waterfall(shap_values[0], max_display=max_features_to_show, show=False)
