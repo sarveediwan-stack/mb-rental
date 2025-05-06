@@ -147,20 +147,20 @@ def load_and_process_data():
             # For these rows, calculate builtup_area as 1.1 * carpet_area
             df.loc[mask, 'builtup_area'] = df.loc[mask, 'carpet_area'] * 1.1
             
-            # print(f"Filled {mask.sum()} missing builtup_area values using carpet_area")
+            st.success(f"Filled {mask.sum()} missing builtup_area values using carpet_area")
         
         # Drop rows where both builtup_area and carpet_area are missing
         if 'carpet_area' in df.columns:
             missing_both = (df['builtup_area'].isna() & df['carpet_area'].isna())
             
             rows_to_drop = missing_both.sum()
-            # print(f"Dropping {rows_to_drop} rows with both builtup_area and carpet_area missing")
+            st.success(f"Dropping {rows_to_drop} rows with both builtup_area and carpet_area missing")
             
             df = df[~missing_both]
         else:
             # If carpet_area column doesn't exist, just drop rows with missing builtup_area
             rows_to_drop = df['builtup_area'].isna().sum()
-            # print(f"Dropping {rows_to_drop} rows with missing builtup_area (carpet_area column not found)")
+            st.success(f"Dropping {rows_to_drop} rows with missing builtup_area (carpet_area column not found)")
             
             df = df.dropna(subset=['builtup_area'])
         st.success(f"✅ Data AFTER AREA CLEAN successfully: {len(df)} properties")
