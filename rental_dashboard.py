@@ -344,6 +344,9 @@ def predict_rent_dual(input_data, models, label_encoders):
 
     # Make predictions
     try:
+        features = ['bedrooms', 'builtup_area', 'bathrooms', 'furnishing', 'locality', 
+               'society', 'floor', 'total_floors', 'building_age']
+
         # Select model features
         features_with_log = [f if f != 'builtup_area' else 'log_builtup_area' for f in features]
         input_features = input_df[features_with_log]
