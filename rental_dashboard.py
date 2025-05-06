@@ -259,7 +259,7 @@ def load_and_process_data():
 def train_models(df):
     if df is None:
         return None
-    
+    df['log_builtup_area'] = np.log1p(df['builtup_area'])
     features = ['bedrooms', 'builtup_area', 'bathrooms', 'furnishing', 'locality', 
                'society', 'floor', 'total_floors', 'building_age']
     
