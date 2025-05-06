@@ -43,7 +43,6 @@ def load_and_process_data():
     
     try:
         df_raw = pd.read_csv(file_path)
-        st.success(f"✅ Data AT READING STAGE successfully: {len(df_raw)} properties")
         # Rename and normalize column names
         df_raw.columns = df_raw.columns.str.strip().str.lower()
         
@@ -80,8 +79,6 @@ def load_and_process_data():
         critical_fields = [col for col in critical_fields if col in df.columns]
         if critical_fields:
             df = df.dropna(subset=critical_fields)
-        
-        st.success(f"✅ Data AFTER NA RENT AND BEDROOM successfully: {len(df)} properties")
 
         # Convert numeric columns
         numeric_cols = {
@@ -105,21 +102,15 @@ def load_and_process_data():
                 return df
             Q1 = df[column].quantile(0.25)
             Q3 = df[column].quantile(0.75)
-            st.success(f"Q1: {Q1}")
-            st.success(f"Q3: {Q3}")
-            
             IQR = Q3 - Q1
             lower_bound = Q1 - 1.5 * IQR
             upper_bound = Q3 + 1.5 * IQR
-            st.success(f"LB: {lower_bound}")
-            st.success(f"UB: {upper_bound}")
             return df[(df[column] >= lower_bound) & (df[column] <= upper_bound)]
         
         # for col in ['rent', 'builtup_area', 'total_floors']:
         for col in ['rent']:
             if col in df.columns:
                 df = remove_outliers(df, col)
-        st.success(f"✅ Data AFTER OUTLIER successfully: {len(df)} properties")
         # Extract amenity columns
         amenity_cols = [col for col in df.columns if col.startswith('detail_amenitymap_') or col.startswith('detail_amenityexternalmap_')]
         amenity_df = df[amenity_cols].copy()
@@ -139,7 +130,6 @@ def load_and_process_data():
         # Filter for multi-storey apartments if column exists
         if 'property_type' in df.columns:
             df = df[df['property_type'].str.lower().str.strip() == 'multistorey apartment']
-        st.success(f"✅ Data AFTER FILTER successfully: {len(df)} properties")
         
         # Impute Missing Values
         df['builtup_area_missing'] = df['builtup_area'].isna().astype(int)
@@ -150,23 +140,23 @@ def load_and_process_data():
             # For these rows, calculate builtup_area as 1.1 * carpet_area
             df.loc[mask, 'builtup_area'] = df.loc[mask, 'carpet_area'] * 1.1
             
-            st.success(f"Filled {mask.sum()} missing builtup_area values using carpet_area")
+            # st.success(f"Filled {mask.sum()} missing builtup_area values using carpet_area")
         
         # Drop rows where both builtup_area and carpet_area are missing
         if 'carpet_area' in df.columns:
             missing_both = (df['builtup_area'].isna() & df['carpet_area'].isna())
             
             rows_to_drop = missing_both.sum()
-            st.success(f"Dropping {rows_to_drop} rows with both builtup_area and carpet_area missing")
+            # st.success(f"Dropping {rows_to_drop} rows with both builtup_area and carpet_area missing")
             
             df = df[~missing_both]
         else:
             # If carpet_area column doesn't exist, just drop rows with missing builtup_area
             rows_to_drop = df['builtup_area'].isna().sum()
-            st.success(f"Dropping {rows_to_drop} rows with missing builtup_area (carpet_area column not found)")
+            # st.success(f"Dropping {rows_to_drop} rows with missing builtup_area (carpet_area column not found)")
             
             df = df.dropna(subset=['builtup_area'])
-        st.success(f"✅ Data AFTER AREA CLEAN successfully: {len(df)} properties")
+        # st.success(f"✅ Data AFTER AREA CLEAN successfully: {len(df)} properties")
         df['locality_missing'] = df['locality'].isna().astype(int)
         df['society_missing'] = df['society'].isna().astype(int)
         df['lat_missing'] = df['latitude'].isna().astype(int)
@@ -251,7 +241,7 @@ def load_and_process_data():
         # Save the processed data
         ensure_data_dir()
         df.to_csv('data/processed_data.csv', index=False)
-        st.success(f"✅ Data AFTER ALL DONE successfully: {len(df)} properties")
+        # st.success(f"✅ Data AFTER ALL DONE successfully: {len(df)} properties")
         return df, label_encoders
     except Exception as e:
         st.error(f"Error loading data: {e}")
