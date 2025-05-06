@@ -75,6 +75,13 @@ def load_and_process_data():
         }
         
         df = df_raw.rename(columns=rename_map)
+        # Drop rows with missing values in critical fields
+        critical_fields = ['rent', 'bedrooms']
+        critical_fields = [col for col in critical_fields if col in df.columns]
+        if critical_fields:
+            df = df.dropna(subset=critical_fields)
+        
+        st.success(f"✅ Data AFTER NA RENT AND BEDROOM successfully: {len(df)} properties")
 
         # Convert numeric columns
         numeric_cols = {
@@ -167,13 +174,6 @@ def load_and_process_data():
         df['latitude'] = df['latitude'].fillna(df['latitude'].median())
         df['longitude'] = df['longitude'].fillna(df['longitude'].median())
         
-        # Drop rows with missing values in critical fields
-        critical_fields = ['rent', 'bedrooms']
-        critical_fields = [col for col in critical_fields if col in df.columns]
-        if critical_fields:
-            df = df.dropna(subset=critical_fields)
-        
-        st.success(f"✅ Data AFTER NA RENT AND BEDROOM successfully: {len(df)} properties")
         # Process additional rooms if present
         if 'detail_additionalrooms' in df.columns:
             df['detail_additionalrooms'] = df['detail_additionalrooms'].astype(str).fillna('').str.lower()
