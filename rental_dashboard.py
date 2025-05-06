@@ -43,6 +43,7 @@ def load_and_process_data():
     
     try:
         df_raw = pd.read_csv(file_path)
+        st.success(f"✅ Data loaded successfully: {len(df_raw)} properties")
         
         # Rename and normalize column names
         df_raw.columns = df_raw.columns.str.strip().str.lower()
@@ -125,7 +126,7 @@ def load_and_process_data():
         # Filter for multi-storey apartments if column exists
         if 'property_type' in df.columns:
             df = df[df['property_type'].str.lower().str.strip() == 'multistorey apartment']
-
+        st.success(f"✅ Filtered successfully: {len(df_raw)} properties")
         # Impute Missing Values
         df['builtup_area_missing'] = df['builtup_area'].isna().astype(int)
         if 'carpet_area' in df.columns:
