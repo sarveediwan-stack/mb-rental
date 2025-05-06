@@ -43,7 +43,7 @@ def load_and_process_data():
     
     try:
         df_raw = pd.read_csv(file_path)
-        
+        st.success(f"✅ Data AT READING STAGE successfully: {len(df)} properties")
         # Rename and normalize column names
         df_raw.columns = df_raw.columns.str.strip().str.lower()
         
@@ -100,7 +100,7 @@ def load_and_process_data():
             lower_bound = Q1 - 1.5 * IQR
             upper_bound = Q3 + 1.5 * IQR
             return df[(df[column] >= lower_bound) & (df[column] <= upper_bound)]
-        
+        st.success(f"✅ Data AFTER OUTLIER successfully: {len(df)} properties")
         # for col in ['rent', 'builtup_area', 'total_floors']:
         for col in ['rent']:
             if col in df.columns:
@@ -125,7 +125,7 @@ def load_and_process_data():
         # Filter for multi-storey apartments if column exists
         if 'property_type' in df.columns:
             df = df[df['property_type'].str.lower().str.strip() == 'multistorey apartment']
-        
+        st.success(f"✅ Data AFTER FILTER successfully: {len(df)} properties")
         # Impute Missing Values
         df['builtup_area_missing'] = df['builtup_area'].isna().astype(int)
         if 'carpet_area' in df.columns:
@@ -151,7 +151,7 @@ def load_and_process_data():
             # print(f"Dropping {rows_to_drop} rows with missing builtup_area (carpet_area column not found)")
             
             df = df.dropna(subset=['builtup_area'])
-        
+        st.success(f"✅ Data AFTER AREA CLEAN successfully: {len(df)} properties")
         df['locality_missing'] = df['locality'].isna().astype(int)
         df['society_missing'] = df['society'].isna().astype(int)
         df['lat_missing'] = df['latitude'].isna().astype(int)
@@ -168,7 +168,7 @@ def load_and_process_data():
         if critical_fields:
             df = df.dropna(subset=critical_fields)
         
-        
+        st.success(f"✅ Data AFTER NA RENT AND BEDROOM successfully: {len(df)} properties")
         # Process additional rooms if present
         if 'detail_additionalrooms' in df.columns:
             df['detail_additionalrooms'] = df['detail_additionalrooms'].astype(str).fillna('').str.lower()
@@ -243,7 +243,7 @@ def load_and_process_data():
         # Save the processed data
         ensure_data_dir()
         df.to_csv('data/processed_data.csv', index=False)
-        st.success(f"✅ Data loaded successfully: {len(df)} properties")
+        st.success(f"✅ Data AFTER ALL DONE successfully: {len(df)} properties")
         return df, label_encoders
     except Exception as e:
         st.error(f"Error loading data: {e}")
