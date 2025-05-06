@@ -446,6 +446,43 @@ def estimate_rent_alternative(df, label_encoders, area, locality, society, furni
     except Exception as e:
         st.error(f"Error estimating alternative rent: {e}")
         return 0
+
+# Function to generate waterfall
+def generate_shap_waterfall(model, features, input_data, feature_names, label_encoders):
+    """
+    Generate a SHAP waterfall plot with properly formatted labels
+    """
+    # Create a SHAP explainer
+    explainer = shap.TreeExplainer(model)
+    
+    # Calculate SHAP values for the input property
+    shap_values = explainer(input_data)
+    
+    # Create a dictionary to map encoded values back to original names
+    decoded_feature_names = feature_names.copy()
+    
+    # Decode the categorical features for display
+    for col in ['furnishing', 'locality', 'society']:
+        if col in input_data.columns and col in label_encoders:
+            # Get the original value
+            encoded_value = input_data[col].values[0]
+            original_value = label_encoders[col].inverse_transform([int(encoded_value)])[0]
+            # Update the display name
+            idx = list(input_data.columns).index(col)
+            decoded_feature_names[idx] = f"{col}: {original_value}"
+    
+    # Create waterfall plot
+    fig = plt.figure(figsize=(10, 8))
+    max_features_to_show = min(len(features), 10)  # Limit to top 10 features
+    shap_values.feature_names = decoded_feature_names
+    shap.plots.waterfall(shap_values[0], max_display=max_features_to_show, show=False)
+    
+    # Add title
+    plt.title("Feature Contribution to Rent Prediction", fontsize=16)
+    plt.tight_layout()
+    
+    return fig
+
 # Main app logic 
 df, label_encoders = load_and_process_data()
 
@@ -547,6 +584,55 @@ if df is not None and len(df) > 0:
                         'RMSE': [f"₹{models['rmse_a']:,.0f}", f"₹{models['rmse_b']:,.0f}"]
                     })
                     st.table(metrics_df)
+                with st.expander("Explain Prediction (SHAP Analysis)"):
+                    st.write("This visualization shows how each feature contributes to the predicted rent value:")
+                    
+                    # Create input DataFrame for SHAP analysis
+                    features_with_log = [f if f != 'builtup_area' else 'log_builtup_area' for f in models['features']]
+                    input_df = pd.DataFrame([input_property]).copy()
+                    
+                    # Feature engineering
+                    input_df['floor'] = input_df['floor'].replace(0, 1)
+                    input_df['total_floors'] = input_df['total_floors'].replace(0, 1)
+                    
+                    if 'floor' in input_df.columns and 'total_floors' in input_df.columns:
+                        input_df['floor_to_total_floors'] = input_df['floor'] / input_df['total_floors']
+                    
+                    # Add log transformation for builtup_area
+                    input_df['log_builtup_area'] = np.log1p(input_df['builtup_area'])
+                    
+                    # Encode categorical variables
+                    for col in ['furnishing', 'locality', 'society']:
+                        try:
+                            if col in input_df.columns and col in label_encoders:
+                                input_df[col] = label_encoders[col].transform(input_df[col].astype(str))
+                        except ValueError as e:
+                            st.error(f"Value '{input_df[col][0]}' not found in training data for column {col}")
+                    
+                    # Select model features
+                    input_features = input_df[features_with_log]
+                    
+                    try:
+                        # Generate SHAP waterfall plot
+                        fig = generate_shap_waterfall(
+                            models['model_a'],
+                            features_with_log,
+                            input_features,
+                            features_with_log,
+                            label_encoders
+                        )
+                        st.pyplot(fig)
+                        
+                        st.write("### How to interpret this chart:")
+                        st.write("""
+                        - The base value is the average prediction across all properties
+                        - Red arrows show features pushing the rent higher
+                        - Blue arrows show features pushing the rent lower
+                        - The final prediction is shown at the bottom
+                        """)
+                    except Exception as e:
+                        st.error(f"Could not generate SHAP explanation: {e}")
+
         
         # Comparable Properties Tab
         with tabs[1]:
