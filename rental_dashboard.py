@@ -95,7 +95,9 @@ def load_and_process_data():
         }
         for col, default in numeric_cols.items():
             if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(default)
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+        df['floor'] = df['floor'].fillna(1)
+        df['total_floors'] = df['total_floors'].fillna(1)
 
         # Remove outliers
         def remove_outliers(df, column):
@@ -138,6 +140,7 @@ def load_and_process_data():
         if 'property_type' in df.columns:
             df = df[df['property_type'].str.lower().str.strip() == 'multistorey apartment']
         st.success(f"✅ Data AFTER FILTER successfully: {len(df)} properties")
+        
         # Impute Missing Values
         df['builtup_area_missing'] = df['builtup_area'].isna().astype(int)
         if 'carpet_area' in df.columns:
