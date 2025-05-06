@@ -43,7 +43,7 @@ def load_and_process_data():
     
     try:
         df_raw = pd.read_csv(file_path)
-        st.success(f"✅ Data AT READING STAGE successfully: {len(df)} properties")
+        st.success(f"✅ Data AT READING STAGE successfully: {len(df_raw)} properties")
         # Rename and normalize column names
         df_raw.columns = df_raw.columns.str.strip().str.lower()
         
