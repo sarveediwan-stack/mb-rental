@@ -102,6 +102,8 @@ def load_and_process_data():
             IQR = Q3 - Q1
             lower_bound = Q1 - 1.5 * IQR
             upper_bound = Q3 + 1.5 * IQR
+            st.success(f"LB: {lower_bound}")
+            st.success(f"UB: {upper_bound}")
             return df[(df[column] >= lower_bound) & (df[column] <= upper_bound)]
         
         # for col in ['rent', 'builtup_area', 'total_floors']:
