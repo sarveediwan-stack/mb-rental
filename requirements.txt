@@ -7,4 +7,5 @@ scikit-learn
 geopy
 folium
 streamlit-folium
+shap
 
