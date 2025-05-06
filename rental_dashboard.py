@@ -96,6 +96,9 @@ def load_and_process_data():
                 return df
             Q1 = df[column].quantile(0.25)
             Q3 = df[column].quantile(0.75)
+            st.success(f"Q1: {Q1}")
+            st.success(f"Q3: {Q3}")
+            
             IQR = Q3 - Q1
             lower_bound = Q1 - 1.5 * IQR
             upper_bound = Q3 + 1.5 * IQR
