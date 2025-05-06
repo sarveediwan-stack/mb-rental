@@ -21,7 +21,7 @@ st.set_page_config(
 )
 
 # App title and description
-st.title("🏠 Real Estate Rental Analysis Dashboard")
+st.title("🏠 Magicbricks Rental Analysis Dashboard")
 st.markdown("""
 This app analyzes rental property data to predict rents and find comparable properties.
 Upload your CSV file with property data to get started.
@@ -52,6 +52,7 @@ def load_and_process_data():
             'property_localityname': 'locality',
             'detail_propertytype': 'property_type',
             'detail_coveredarea': 'builtup_area',
+            'detail_carpetarea': 'carpet_area',
             'detail_bedrooms': 'bedrooms',
             'detail_bathrooms': 'bathrooms',
             'detail_furnished': 'furnishing',
@@ -74,7 +75,37 @@ def load_and_process_data():
         }
         
         df = df_raw.rename(columns=rename_map)
+
+        # Convert numeric columns
+        numeric_cols = {
+            'rent': 0,
+            'builtup_area': 0,
+            'carpet_area': 0,
+            'bedrooms': 0,
+            'bathrooms': 0,
+            'floor': 1,
+            'total_floors': 1
+        }
+        for col, default in numeric_cols.items():
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(default)
+
+        # Remove outliers
+        def remove_outliers(df, column):
+            if column not in df.columns:
+                return df
+            Q1 = df[column].quantile(0.25)
+            Q3 = df[column].quantile(0.75)
+            IQR = Q3 - Q1
+            lower_bound = Q1 - 1.5 * IQR
+            upper_bound = Q3 + 1.5 * IQR
+            return df[(df[column] >= lower_bound) & (df[column] <= upper_bound)]
         
+        # for col in ['rent', 'builtup_area', 'total_floors']:
+        for col in ['rent']:
+            if col in df.columns:
+                df = remove_outliers(df, col)
+
         # Extract amenity columns
         amenity_cols = [col for col in df.columns if col.startswith('detail_amenitymap_') or col.startswith('detail_amenityexternalmap_')]
         amenity_df = df[amenity_cols].copy()
@@ -85,8 +116,8 @@ def load_and_process_data():
         df = pd.concat([df, amenity_df], axis=1)
         # Filter for necessary columns
         required_cols = [
-            'locality', 'society', 'property_type', 'builtup_area', 'bedrooms', 'bathrooms', 'furnishing',
-            'floor', 'total_floors', 'rent', 'latitude', 'longitude', 'detail_additionalrooms', 'building_age'
+            'locality', 'society', 'property_type', 'builtup_area', 'carpet_area','bedrooms', 'bathrooms', 'furnishing',
+            'floor', 'total_floors', 'rent', 'latitude', 'longitude', 'detail_additionalrooms', 'building_age','maintenance'
         ]
         existing_cols = [col for col in required_cols if col in df.columns]
         df = df[existing_cols].copy() if existing_cols else df
@@ -94,25 +125,49 @@ def load_and_process_data():
         # Filter for multi-storey apartments if column exists
         if 'property_type' in df.columns:
             df = df[df['property_type'].str.lower().str.strip() == 'multistorey apartment']
+
+        # Impute Missing Values
+        df['builtup_area_missing'] = df['builtup_area'].isna().astype(int)
+        if 'carpet_area' in df.columns:
+            # Create a mask for rows with missing builtup_area but available carpet_area
+            mask = df['builtup_area'].isna() & df['carpet_area'].notna()
+            
+            # For these rows, calculate builtup_area as 1.1 * carpet_area
+            df.loc[mask, 'builtup_area'] = df.loc[mask, 'carpet_area'] * 1.1
+            
+            # print(f"Filled {mask.sum()} missing builtup_area values using carpet_area")
+        
+        # Drop rows where both builtup_area and carpet_area are missing
+        if 'carpet_area' in df.columns:
+            missing_both = (df['builtup_area'].isna() & df['carpet_area'].isna())
+            
+            rows_to_drop = missing_both.sum()
+            # print(f"Dropping {rows_to_drop} rows with both builtup_area and carpet_area missing")
+            
+            df = df[~missing_both]
+        else:
+            # If carpet_area column doesn't exist, just drop rows with missing builtup_area
+            rows_to_drop = df['builtup_area'].isna().sum()
+            # print(f"Dropping {rows_to_drop} rows with missing builtup_area (carpet_area column not found)")
+            
+            df = df.dropna(subset=['builtup_area'])
+        
+        df['locality_missing'] = df['locality'].isna().astype(int)
+        df['society_missing'] = df['society'].isna().astype(int)
+        df['lat_missing'] = df['latitude'].isna().astype(int)
+        df['lng_missing'] = df['longitude'].isna().astype(int)
+        # Then perform your imputation
+        df['locality'] = df['locality'].fillna('Unknown')
+        df['society'] = df['society'].fillna('Unknown')
+        df['latitude'] = df['latitude'].fillna(df['latitude'].median())
+        df['longitude'] = df['longitude'].fillna(df['longitude'].median())
         
         # Drop rows with missing values in critical fields
-        critical_fields = ['rent', 'builtup_area', 'bedrooms', 'locality', 'society']
+        critical_fields = ['rent', 'bedrooms']
         critical_fields = [col for col in critical_fields if col in df.columns]
         if critical_fields:
             df = df.dropna(subset=critical_fields)
         
-        # Convert numeric columns
-        numeric_cols = {
-            'rent': 0,
-            'builtup_area': 0,
-            'bedrooms': 0,
-            'bathrooms': 0,
-            'floor': 1,
-            'total_floors': 1
-        }
-        for col, default in numeric_cols.items():
-            if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(default)
         
         # Process additional rooms if present
         if 'detail_additionalrooms' in df.columns:
@@ -149,20 +204,6 @@ def load_and_process_data():
                 df['building_age'] = df.groupby('locality')['building_age'].transform(lambda x: x.fillna(x.median()))
             df['building_age'] = df['building_age'].fillna(df['building_age'].median() if not df['building_age'].isna().all() else 0)
         
-        # Remove outliers
-        def remove_outliers(df, column):
-            if column not in df.columns:
-                return df
-            Q1 = df[column].quantile(0.25)
-            Q3 = df[column].quantile(0.75)
-            IQR = Q3 - Q1
-            lower_bound = Q1 - 1.5 * IQR
-            upper_bound = Q3 + 1.5 * IQR
-            return df[(df[column] >= lower_bound) & (df[column] <= upper_bound)]
-        
-        for col in ['rent', 'builtup_area', 'total_floors']:
-            if col in df.columns:
-                df = remove_outliers(df, col)
         
         # Create log transformations
         if 'total_rent' in df.columns:
@@ -215,7 +256,7 @@ def train_models(df):
         return None
     
     features = ['bedrooms', 'builtup_area', 'bathrooms', 'furnishing', 'locality', 
-               'society', 'floor', 'total_floors', 'floor_to_total_floors', 'building_age']
+               'society', 'floor', 'total_floors', 'building_age']
     
     # Make sure all features exist
     features = [f for f in features if f in df.columns]
@@ -225,7 +266,12 @@ def train_models(df):
         return None
     
     try:
-        X = df[features]
+        # Update features list to use log_builtup_area instead of builtup_area
+        features_with_log = [f if f != 'builtup_area' else 'log_builtup_area' for f in features]
+        
+        # Train models with updated features
+        X = df[features_with_log]
+        # X = df[features]
         y_a = df['total_rent']
         y_b = df['log_total_rent']
         
@@ -278,7 +324,10 @@ def predict_rent_dual(input_data, models, label_encoders):
     
     if 'floor' in input_df.columns and 'total_floors' in input_df.columns:
         input_df['floor_to_total_floors'] = input_df['floor'] / input_df['total_floors']
-    
+
+    # Add log transformation for builtup_area
+    input_df['log_builtup_area'] = np.log1p(input_df['builtup_area'])
+
     # Encode categorical variables
     for col in ['furnishing', 'locality', 'society']:
         try:
@@ -290,10 +339,15 @@ def predict_rent_dual(input_data, models, label_encoders):
                 'model_a_raw_prediction': 0,
                 'model_b_log_prediction': 0
             }
-    
+
+
     # Make predictions
     try:
-        input_features = input_df[models['features']]
+        # Select model features
+        features_with_log = [f if f != 'builtup_area' else 'log_builtup_area' for f in features]
+        input_features = input_df[features_with_log]
+
+        # input_features = input_df[models['features']]
         
         # Predict using Model A (raw rent)
         pred_a = models['model_a'].predict(input_features)[0]
