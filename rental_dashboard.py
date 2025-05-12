@@ -14,6 +14,11 @@ import os
 import io
 from datetime import datetime
 
+if 'last_selected_society' not in st.session_state:
+    st.session_state.last_selected_society = None
+if 'last_selected_bhk' not in st.session_state:
+    st.session_state.last_selected_bhk = None
+
 # Set page configuration
 st.set_page_config(
     page_title="Real Estate Rental Analysis Dashboard",
@@ -704,7 +709,9 @@ if df is not None and len(df) > 0:
                     # Step 2: Predict
                     results = predict_rent_with_canonical_locality(input_property, society_locality_map, models, label_encoders)
                     estimated_rent = estimate_rent_alternative(df,label_encoders,area=input_property['builtup_area'],locality=input_property['locality'],society=input_property['society'],furnishing=input_property['furnishing'])
-    
+                    st.session_state.last_selected_society = selected_society
+                    st.session_state.last_selected_bhk = selected_bhk
+
                 # Display results in columns
                 col1, col2, col3 = st.columns(3)
     
@@ -792,101 +799,106 @@ if df is not None and len(df) > 0:
         # Comparable Properties Tab
         with tabs[1]:
             st.header("Comparable Properties")
-            
-            # Input for comparable search
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                comp_society = st.selectbox("Select Society", unique_societies, key="comp_society")
-                comp_bhk = st.number_input("Bedrooms", min_value=1.0, max_value=7.0, value=3.0, step=0.5, key="comp_bhk")
-            
-            with col2:
-                radius_km = st.slider("Search Radius (km)", min_value=0.5, max_value=10.0, value=2.0, step=0.5)
-            
-            # Find button
-            if st.button("Find Comparable Properties"):
-                # Get coordinates from a sample property
-                try:
-                    society_encoded = label_encoders['society'].transform([comp_society])[0]
-                    same_society_df = df[df['society'] == society_encoded]
-                    
-                    if not same_society_df.empty:
-                        sample_row = same_society_df.iloc[0]
-                        lat, lon = sample_row['latitude'], sample_row['longitude']
+            with st.form(key="comparable_search_form"):
+    
+                # Input for comparable search
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    default_society = st.session_state.last_selected_society if st.session_state.last_selected_society else unique_societies[0]
+                    default_bhk = st.session_state.last_selected_bhk if st.session_state.last_selected_bhk else 3.0
+                    comp_society = st.selectbox("Select Society", unique_societies, key="comp_society")
+                    comp_bhk = st.number_input("Bedrooms", min_value=1.0, max_value=7.0, value=3.0, step=0.5, key="comp_bhk")
+                
+                with col2:
+                    radius_km = st.slider("Search Radius (km)", min_value=0.5, max_value=10.0, value=2.0, step=0.5)
+                # Submit button
+                find_submitted = st.form_submit_button("Find Comparable Properties")
+
+                # Find button
+                if find_submitted:
+                    # Get coordinates from a sample property
+                    try:
+                        society_encoded = label_encoders['society'].transform([comp_society])[0]
+                        same_society_df = df[df['society'] == society_encoded]
                         
-                        # Find comparables
-                        same_society, same_bhk, nearby = find_comparables(
-                            df, label_encoders, comp_society, comp_bhk, lat, lon, radius_km
-                        )
-                        
-                        # Display counts
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            st.metric("Same Society", f"{same_society.shape[0]} properties")
-                        with col2:
-                            st.metric(f"Same BHK ({comp_bhk})", f"{same_bhk.shape[0]} properties")
-                        with col3:
-                            st.metric(f"Within {radius_km}km", f"{nearby.shape[0]} properties")
-                        
-                        # Show properties on tabs
-                        comp_tabs = st.tabs(["Same Society", "Same BHK", "Nearby Properties"])
-                        
-                        # Function to display property dataframe
-                        def display_properties(properties_df, label_encoders):
-                            if not properties_df.empty:
-                                # Create a copy to avoid modifying the original
-                                display_df = properties_df.copy()
-                                
-                                # Decode categorical columns
-                                for col in ['society', 'locality', 'furnishing']:
-                                    if col in display_df.columns:
-                                        display_df[col] = display_df[col].apply(
-                                            lambda x: label_encoders[col].inverse_transform([x])[0]
-                                        )
-                                
-                                # Select and rename columns for display
-                                cols_to_display = ['society', 'locality', 'bedrooms', 'bathrooms', 
-                                                    'builtup_area', 'furnishing', 'rent', 'floor', 
-                                                    'total_floors']
-                                
-                                if 'distance_km' in display_df.columns:
-                                    cols_to_display.append('distance_km')
-                                
-                                display_df = display_df[[c for c in cols_to_display if c in display_df.columns]]
-                                
-                                # Format rent as currency
-                                if 'rent' in display_df.columns:
-                                    display_df['rent'] = display_df['rent'].apply(lambda x: f"₹{x:,.0f}")
-                                
-                                # Calculate and add rent per sqft
-                                if 'rent' in properties_df.columns and 'builtup_area' in properties_df.columns:
-                                    display_df['rent_per_sqft'] = (
-                                        pd.to_numeric(properties_df['rent']) / 
-                                        properties_df['builtup_area']
-                                    ).apply(lambda x: f"₹{x:.1f}")
-                                
-                                # Format distance if present
-                                if 'distance_km' in display_df.columns:
-                                    display_df['distance_km'] = display_df['distance_km'].apply(lambda x: f"{x:.2f} km")
-                                
-                                # Display the dataframe
-                                st.dataframe(display_df)
-                            else:
-                                st.info("No properties found.")
-                        
-                        # Display properties in each tab
-                        with comp_tabs[0]:
-                            display_properties(same_society, label_encoders)
-                        
-                        with comp_tabs[1]:
-                            display_properties(same_bhk, label_encoders)
-                        
-                        with comp_tabs[2]:
-                            display_properties(nearby, label_encoders)
-                    else:
-                        st.error(f"No properties found in {comp_society}.")
-                except Exception as e:
-                    st.error(f"Error finding comparable properties: {e}")
+                        if not same_society_df.empty:
+                            sample_row = same_society_df.iloc[0]
+                            lat, lon = sample_row['latitude'], sample_row['longitude']
+                            
+                            # Find comparables
+                            same_society, same_bhk, nearby = find_comparables(
+                                df, label_encoders, comp_society, comp_bhk, lat, lon, radius_km
+                            )
+                            
+                            # Display counts
+                            col1, col2, col3 = st.columns(3)
+                            with col1:
+                                st.metric("Same Society", f"{same_society.shape[0]} properties")
+                            with col2:
+                                st.metric(f"Same BHK ({comp_bhk})", f"{same_bhk.shape[0]} properties")
+                            with col3:
+                                st.metric(f"Within {radius_km}km", f"{nearby.shape[0]} properties")
+                            
+                            # Show properties on tabs
+                            comp_tabs = st.tabs(["Same Society", "Same BHK", "Nearby Properties"])
+                            
+                            # Function to display property dataframe
+                            def display_properties(properties_df, label_encoders):
+                                if not properties_df.empty:
+                                    # Create a copy to avoid modifying the original
+                                    display_df = properties_df.copy()
+                                    
+                                    # Decode categorical columns
+                                    for col in ['society', 'locality', 'furnishing']:
+                                        if col in display_df.columns:
+                                            display_df[col] = display_df[col].apply(
+                                                lambda x: label_encoders[col].inverse_transform([x])[0]
+                                            )
+                                    
+                                    # Select and rename columns for display
+                                    cols_to_display = ['society', 'locality', 'bedrooms', 'bathrooms', 
+                                                        'builtup_area', 'furnishing', 'rent', 'floor', 
+                                                        'total_floors']
+                                    
+                                    if 'distance_km' in display_df.columns:
+                                        cols_to_display.append('distance_km')
+                                    
+                                    display_df = display_df[[c for c in cols_to_display if c in display_df.columns]]
+                                    
+                                    # Format rent as currency
+                                    if 'rent' in display_df.columns:
+                                        display_df['rent'] = display_df['rent'].apply(lambda x: f"₹{x:,.0f}")
+                                    
+                                    # Calculate and add rent per sqft
+                                    if 'rent' in properties_df.columns and 'builtup_area' in properties_df.columns:
+                                        display_df['rent_per_sqft'] = (
+                                            pd.to_numeric(properties_df['rent']) / 
+                                            properties_df['builtup_area']
+                                        ).apply(lambda x: f"₹{x:.1f}")
+                                    
+                                    # Format distance if present
+                                    if 'distance_km' in display_df.columns:
+                                        display_df['distance_km'] = display_df['distance_km'].apply(lambda x: f"{x:.2f} km")
+                                    
+                                    # Display the dataframe
+                                    st.dataframe(display_df)
+                                else:
+                                    st.info("No properties found.")
+                            
+                            # Display properties in each tab
+                            with comp_tabs[0]:
+                                display_properties(same_society, label_encoders)
+                            
+                            with comp_tabs[1]:
+                                display_properties(same_bhk, label_encoders)
+                            
+                            with comp_tabs[2]:
+                                display_properties(nearby, label_encoders)
+                        else:
+                            st.error(f"No properties found in {comp_society}.")
+                    except Exception as e:
+                        st.error(f"Error finding comparable properties: {e}")
         
         # Data Exploration Tab
         with tabs[2]:
