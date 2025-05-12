@@ -827,6 +827,9 @@ if df is not None and len(df) > 0:
                 
                 with col2:
                     radius_km = st.slider("Search Radius (km)", min_value=0.5, max_value=10.0, value=2.0, step=0.5)
+                    # Add an option to show a map of nearby properties
+                    show_map = st.checkbox("Show properties on map", value=False)
+
                 # Submit button
                 find_submitted = st.form_submit_button("Find Comparable Properties")
 
@@ -910,6 +913,16 @@ if df is not None and len(df) > 0:
                             
                             with comp_tabs[2]:
                                 display_properties(nearby, label_encoders)
+                            if show_map and not nearby.empty:
+                                st.subheader("Map of Nearby Properties")
+                                # Create map using st.map if latitude and longitude are available
+                                map_data = nearby[['latitude', 'longitude']].copy()
+                                # Add the current property to highlight it
+                                map_data = pd.concat([
+                                    map_data, 
+                                    pd.DataFrame({'latitude': [lat], 'longitude': [lon]})
+                                ])
+                                st.map(map_data)                        
                         else:
                             st.error(f"No properties found in {comp_society}.")
                     except Exception as e:
