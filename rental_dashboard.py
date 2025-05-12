@@ -823,7 +823,7 @@ if df is not None and len(df) > 0:
                     default_society = st.session_state.last_selected_society if st.session_state.last_selected_society else unique_societies[0]
                     default_bhk = st.session_state.last_selected_bhk if st.session_state.last_selected_bhk else 3.0
                     comp_society = st.selectbox("Select Society", unique_societies, index=unique_societies.index(default_society) if default_society in unique_societies else 0, key="comp_society")
-                    comp_bhk = st.number_input("Bedrooms", min_value=1.0, max_value=7.0, value=3.0, step=0.5, key="comp_bhk")
+                    comp_bhk = st.number_input("Bedrooms", min_value=1.0, max_value=7.0, value=default_bhk, step=0.5, key="comp_bhk")
                 
                 with col2:
                     radius_km = st.slider("Search Radius (km)", min_value=0.5, max_value=10.0, value=2.0, step=0.5)
