@@ -19,21 +19,6 @@ if 'last_selected_society' not in st.session_state:
 if 'last_selected_bhk' not in st.session_state:
     st.session_state.last_selected_bhk = None
 
-# def set_prediction_values():
-#     """Store the prediction form values in session state"""
-#     st.session_state.shared_society = st.session_state.pred_society
-#     st.session_state.shared_bhk = st.session_state.pred_bhk
-
-# def init_session_state():
-#     """Initialize session state variables if they don't exist"""
-#     if 'shared_society' not in st.session_state:
-#         st.session_state.shared_society = None
-#     if 'shared_bhk' not in st.session_state:
-#         st.session_state.shared_bhk = None
-        
-# # Call this at the beginning of your script
-# init_session_state()
-
 # Set page configuration
 st.set_page_config(
     page_title="Real Estate Rental Analysis Dashboard",
@@ -45,7 +30,6 @@ st.set_page_config(
 st.title("🏠 Magicbricks Rental Analysis Dashboard")
 st.markdown("""
 This app analyzes rental property data to predict rents and find comparable properties.
-Upload your CSV file with property data to get started.
 """)
 
 # # Sidebar for file upload
