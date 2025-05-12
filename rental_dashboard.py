@@ -249,6 +249,141 @@ def load_and_process_data():
         return None, None
 
 
+def build_society_locality_map(df, label_encoders):
+    """
+    Creates a mapping from society names to their canonical locality names.
+    Works with the original string values, not encoded values.
+    
+    Args:
+        df: DataFrame with encoded society and locality values
+        label_encoders: Dictionary of label encoders for categorical variables
+        
+    Returns:
+        Dictionary mapping society names (strings) to canonical locality names (strings)
+    """
+    # Create inverse mappings to get original string values
+    society_encoder = label_encoders['society']
+    locality_encoder = label_encoders['locality']
+    
+    # Decode the encoded values to get original strings
+    society_mapping = {i: name for i, name in enumerate(society_encoder.classes_)}
+    locality_mapping = {i: name for i, name in enumerate(locality_encoder.classes_)}
+    
+    # Create a DataFrame with decoded values for analysis
+    decoded_df = df.copy()
+    decoded_df['society_name'] = decoded_df['society'].map(society_mapping)
+    decoded_df['locality_name'] = decoded_df['locality'].map(locality_mapping)
+    
+    # Build the canonical mapping
+    society_locality_map = {}
+    
+    # Group by society name and find most common locality
+    society_groups = decoded_df.groupby('society_name')
+    
+    for society, group in society_groups:
+        if society == 'Unknown' or pd.isna(society):
+            continue
+            
+        # Find most frequent locality for this society
+        locality_counts = group['locality_name'].value_counts()
+        if len(locality_counts) > 0:
+            canonical_locality = locality_counts.index[0]
+            society_locality_map[society] = canonical_locality
+            
+    return society_locality_map
+
+
+def apply_canonical_locality_to_dataset(df, label_encoders):
+    """
+    Applies the canonical locality mapping to the entire dataset before training.
+    This ensures consistent society-locality relationships throughout the model.
+    
+    Args:
+        df: DataFrame with encoded values
+        label_encoders: Dictionary of label encoders
+        
+    Returns:
+        DataFrame with consistent locality values
+    """
+    print("Applying canonical locality mapping to training data...")
+    
+    # First, build the society-locality map
+    society_locality_map = build_society_locality_map(df, label_encoders)
+    
+    # Create a mapping dictionary from encoded society to encoded canonical locality
+    society_to_canonical_locality_encoded = {}
+    
+    # For each society, get its canonical locality and encode both
+    for society_name, canonical_locality_name in society_locality_map.items():
+        try:
+            # Get encoded values
+            society_encoded = label_encoders['society'].transform([society_name])[0]
+            canonical_locality_encoded = label_encoders['locality'].transform([canonical_locality_name])[0]
+            
+            # Map encoded society to encoded canonical locality
+            society_to_canonical_locality_encoded[society_encoded] = canonical_locality_encoded
+        except:
+            # Skip if encoding fails
+            continue
+    
+    # Count how many rows will be modified
+    modified_count = 0
+    
+    # Create a copy of the DataFrame to modify
+    df_consistent = df.copy()
+    
+    # For each row in the dataset
+    for idx, row in df_consistent.iterrows():
+        society_encoded = row['society']
+        locality_encoded = row['locality']
+        
+        # If this society has a canonical locality mapping
+        if society_encoded in society_to_canonical_locality_encoded:
+            canonical_locality_encoded = society_to_canonical_locality_encoded[society_encoded]
+            
+            # If current locality is different from canonical locality
+            if locality_encoded != canonical_locality_encoded:
+                # Update locality to canonical locality
+                df_consistent.at[idx, 'locality'] = canonical_locality_encoded
+                modified_count += 1
+    
+    print(f"Modified {modified_count} rows ({modified_count/len(df)*100:.2f}%) to use canonical localities")
+    
+    # Return the updated DataFrame and the mapping for future use
+    return df_consistent, society_locality_map
+
+
+
+def predict_rent_with_canonical_locality(input_data, society_locality_map):
+    """
+    Ensures consistent locality is used for a given society before prediction.
+    
+    Args:
+        input_data: Dictionary with property details
+        society_locality_map: Dictionary mapping society names to canonical localities
+        
+    Returns:
+        Dictionary with prediction results
+    """
+    # Create a copy to avoid modifying the original
+    input_copy = input_data.copy()
+    
+    # Get society and locality from input
+    society = input_copy.get('society')
+    current_locality = input_copy.get('locality')
+    
+    # Check if this society has a canonical locality mapping
+    if society in society_locality_map:
+        canonical_locality = society_locality_map[society]
+        
+        # Only update if different from current
+        if current_locality != canonical_locality:
+            print(f"Note: For consistency, using canonical locality '{canonical_locality}' for society '{society}' (was '{current_locality}')")
+            input_copy['locality'] = canonical_locality
+    
+    # Now make the prediction with the adjusted input
+    return predict_rent_dual(input_copy)
+
 # Function to train prediction models
 def train_models(df):
     if df is None:
@@ -269,11 +404,18 @@ def train_models(df):
         features_with_log = [f if f != 'builtup_area' else 'log_builtup_area' for f in features]
         
         # Train models with updated features
-        X = df[features_with_log]
-        # X = df[features]
-        y_a = df['total_rent']
-        y_b = df['log_total_rent']
+        # X = df[features_with_log]
+        # # X = df[features]
+        # y_a = df['total_rent']
+        # y_b = df['log_total_rent']
+
+        # Apply canonical locality mapping to ensure consistent training data
+        df_consistent, society_locality_map = apply_canonical_locality_to_dataset(df, label_encoders)
         
+        # Train models with updated features and consistent data
+        X = df_consistent[features_with_log]
+        y_a = df_consistent['total_rent']       # Model A: raw rent
+        y_b = df_consistent['log_total_rent']   # Model B: log-transformed rent
         X_train, X_test, y_train_a, y_test_a = train_test_split(X, y_a, test_size=0.2, random_state=42)
         _, _, y_train_b, y_test_b = train_test_split(X, y_b, test_size=0.2, random_state=42)
         
