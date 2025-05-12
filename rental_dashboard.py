@@ -354,7 +354,7 @@ def apply_canonical_locality_to_dataset(df, label_encoders):
 
 
 
-def predict_rent_with_canonical_locality(input_data, society_locality_map):
+def predict_rent_with_canonical_locality(input_data, society_locality_map, models, label_encoders):
     """
     Ensures consistent locality is used for a given society before prediction.
     
@@ -365,6 +365,9 @@ def predict_rent_with_canonical_locality(input_data, society_locality_map):
     Returns:
         Dictionary with prediction results
     """
+    if models is None:
+        return {'model_a_raw_prediction': 0, 'model_b_log_prediction': 0}
+        
     # Create a copy to avoid modifying the original
     input_copy = input_data.copy()
     
@@ -382,7 +385,7 @@ def predict_rent_with_canonical_locality(input_data, society_locality_map):
             input_copy['locality'] = canonical_locality
     
     # Now make the prediction with the adjusted input
-    return predict_rent_dual(input_copy)
+    return predict_rent_dual(input_copy, models, label_encoders)
 
 # Function to train prediction models
 def train_models(df):
@@ -690,7 +693,10 @@ if df is not None and len(df) > 0:
             if st.button("Predict Rent", key="predict_button"):
                 with st.spinner("Predicting..."):
                     # ML-based Prediction
-                    results = predict_rent_dual(input_property, models, label_encoders)
+                    # Step 1: Create the society-locality mapping
+                    society_locality_map = build_society_locality_map(df, label_encoders)
+                    # Step 2: Predict
+                    results = predict_rent_with_canonical_locality(input_property, society_locality_map, models, label_encoders)
                     estimated_rent = estimate_rent_alternative(df,label_encoders,area=input_property['builtup_area'],locality=input_property['locality'],society=input_property['society'],furnishing=input_property['furnishing'])
 
                 # Display results in columns
