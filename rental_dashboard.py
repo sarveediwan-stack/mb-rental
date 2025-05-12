@@ -682,63 +682,63 @@ if df is not None and len(df) > 0:
                 predict_submitted = st.form_submit_button("Predict Rent")
 
             if predict_submitted:
-            # Create input property dictionary
-            input_property = {
-                'bedrooms': selected_bhk,
-                'builtup_area': selected_area,
-                'bathrooms': selected_bathrooms,
-                'furnishing': selected_furnishing,
-                'locality': selected_locality,
-                'society': selected_society,
-                'floor': selected_floor,
-                'total_floors': selected_total_floors,
-                'building_age': building_age
-            }
-            
-            # Predict button
-            # if st.button("Predict Rent", key="predict_button"):
-            with st.spinner("Predicting..."):
-                # ML-based Prediction
-                # Step 1: Create the society-locality mapping
-                society_locality_map = build_society_locality_map(df, label_encoders)
-                # Step 2: Predict
-                results = predict_rent_with_canonical_locality(input_property, society_locality_map, models, label_encoders)
-                estimated_rent = estimate_rent_alternative(df,label_encoders,area=input_property['builtup_area'],locality=input_property['locality'],society=input_property['society'],furnishing=input_property['furnishing'])
-
-            # Display results in columns
-            col1, col2, col3 = st.columns(3)
-
-            with col1:
-                st.metric("Model A (Raw Rent)", f"₹{results['model_a_raw_prediction']:,.0f}/month")
-
-            with col2:
-                st.metric("Model B (Log Rent)", f"₹{results['model_b_log_prediction']:,.0f}/month")
-
-            with col3:
-                st.metric("Rent/sqft Estimate", f"₹{estimated_rent:,.0f}/month")
-
-            
-            # Display explanation
-            with st.expander("Model Explanation"):
-                st.write("""
-                ### Prediction Models
+                # Create input property dictionary
+                input_property = {
+                    'bedrooms': selected_bhk,
+                    'builtup_area': selected_area,
+                    'bathrooms': selected_bathrooms,
+                    'furnishing': selected_furnishing,
+                    'locality': selected_locality,
+                    'society': selected_society,
+                    'floor': selected_floor,
+                    'total_floors': selected_total_floors,
+                    'building_age': building_age
+                }
                 
-                **Model A (Raw Rent)**: Trained on actual rent values. Performs well for properties in the middle price range.
+                # Predict button
+                # if st.button("Predict Rent", key="predict_button"):
+                with st.spinner("Predicting..."):
+                    # ML-based Prediction
+                    # Step 1: Create the society-locality mapping
+                    society_locality_map = build_society_locality_map(df, label_encoders)
+                    # Step 2: Predict
+                    results = predict_rent_with_canonical_locality(input_property, society_locality_map, models, label_encoders)
+                    estimated_rent = estimate_rent_alternative(df,label_encoders,area=input_property['builtup_area'],locality=input_property['locality'],society=input_property['society'],furnishing=input_property['furnishing'])
+    
+                # Display results in columns
+                col1, col2, col3 = st.columns(3)
+    
+                with col1:
+                    st.metric("Model A (Raw Rent)", f"₹{results['model_a_raw_prediction']:,.0f}/month")
+    
+                with col2:
+                    st.metric("Model B (Log Rent)", f"₹{results['model_b_log_prediction']:,.0f}/month")
+    
+                with col3:
+                    st.metric("Rent/sqft Estimate", f"₹{estimated_rent:,.0f}/month")
+    
                 
-                **Model B (Log Rent)**: Trained on log-transformed rent values, which helps to handle the skewed distribution of rent prices. Often performs better for high-end or low-end properties.
-                            
-                **Rent/sqft Estimate**: Calculates the average rent per square foot for the selected society (or locality if society data is insufficient) and multiplies it by the area. Adjusted based on furnishing type.
-
-                """)
-                
-                # Display model metrics
-                st.write("### Model Performance Metrics")
-                metrics_df = pd.DataFrame({
-                    'Model': ['Model A (Raw)', 'Model B (Log-transformed)'],
-                    'MAE': [f"₹{models['mae_a']:,.0f}", f"₹{models['mae_b']:,.0f}"],
-                    'RMSE': [f"₹{models['rmse_a']:,.0f}", f"₹{models['rmse_b']:,.0f}"]
-                })
-                st.table(metrics_df)
+                # Display explanation
+                with st.expander("Model Explanation"):
+                    st.write("""
+                    ### Prediction Models
+                    
+                    **Model A (Raw Rent)**: Trained on actual rent values. Performs well for properties in the middle price range.
+                    
+                    **Model B (Log Rent)**: Trained on log-transformed rent values, which helps to handle the skewed distribution of rent prices. Often performs better for high-end or low-end properties.
+                                
+                    **Rent/sqft Estimate**: Calculates the average rent per square foot for the selected society (or locality if society data is insufficient) and multiplies it by the area. Adjusted based on furnishing type.
+    
+                    """)
+                    
+                    # Display model metrics
+                    st.write("### Model Performance Metrics")
+                    metrics_df = pd.DataFrame({
+                        'Model': ['Model A (Raw)', 'Model B (Log-transformed)'],
+                        'MAE': [f"₹{models['mae_a']:,.0f}", f"₹{models['mae_b']:,.0f}"],
+                        'RMSE': [f"₹{models['rmse_a']:,.0f}", f"₹{models['rmse_b']:,.0f}"]
+                    })
+                    st.table(metrics_df)
                 with st.expander("Explain Prediction (SHAP Analysis)"):
                     st.write("This visualization shows how each feature contributes to the predicted rent value:")
                     
