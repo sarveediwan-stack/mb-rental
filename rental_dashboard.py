@@ -19,6 +19,21 @@ if 'last_selected_society' not in st.session_state:
 if 'last_selected_bhk' not in st.session_state:
     st.session_state.last_selected_bhk = None
 
+# def set_prediction_values():
+#     """Store the prediction form values in session state"""
+#     st.session_state.shared_society = st.session_state.pred_society
+#     st.session_state.shared_bhk = st.session_state.pred_bhk
+
+# def init_session_state():
+#     """Initialize session state variables if they don't exist"""
+#     if 'shared_society' not in st.session_state:
+#         st.session_state.shared_society = None
+#     if 'shared_bhk' not in st.session_state:
+#         st.session_state.shared_bhk = None
+        
+# # Call this at the beginning of your script
+# init_session_state()
+
 # Set page configuration
 st.set_page_config(
     page_title="Real Estate Rental Analysis Dashboard",
@@ -807,7 +822,7 @@ if df is not None and len(df) > 0:
                 with col1:
                     default_society = st.session_state.last_selected_society if st.session_state.last_selected_society else unique_societies[0]
                     default_bhk = st.session_state.last_selected_bhk if st.session_state.last_selected_bhk else 3.0
-                    comp_society = st.selectbox("Select Society", unique_societies, key="comp_society")
+                    comp_society = st.selectbox("Select Society", unique_societies, index=unique_societies.index(default_society) if default_society in unique_societies else 0, key="comp_society")
                     comp_bhk = st.number_input("Bedrooms", min_value=1.0, max_value=7.0, value=3.0, step=0.5, key="comp_bhk")
                 
                 with col2:
