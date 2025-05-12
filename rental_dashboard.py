@@ -648,34 +648,40 @@ if df is not None and len(df) > 0:
         # Rent Prediction Tab
         with tabs[0]:
             st.header("Rent Prediction")
-            
-            # Input columns layout
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                # Get unique societies and localities
-                unique_societies = list(label_encoders['society'].classes_) if 'society' in label_encoders else []
-                unique_localities = list(label_encoders['locality'].classes_) if 'locality' in label_encoders else []
+            with st.form(key="rent_prediction_form"):
+    
                 
-                # Property inputs
-                selected_locality = st.selectbox("Locality", unique_localities)
-                selected_society = st.selectbox("Society", unique_societies)
+                # Input columns layout
+                col1, col2, col3 = st.columns(3)
                 
-            with col2:
-                selected_bhk = st.number_input("Bedrooms", min_value=1.0, max_value=7.0, value=3.0, step=0.5)
-                selected_bathrooms = st.number_input("Bathrooms", min_value=1, max_value=7, value=2)
-                selected_area = st.number_input("Built-up Area (sqft)", min_value=100, max_value=10000, value=1500)
-                
-            with col3:
-                furnishing_options = list(label_encoders['furnishing'].classes_) if 'furnishing' in label_encoders else []
-                selected_furnishing = st.selectbox("Furnishing", furnishing_options)
-                selected_floor = st.number_input("Floor", min_value=1, max_value=50, value=5)
-                selected_total_floors = st.number_input("Total Floors", min_value=1, max_value=50, value=10)
-                
-            # Optional fields
-            with st.expander("Additional Fields (Optional)"):
-                building_age = st.slider("Building Age (years)", min_value=0, max_value=30, value=5)
-            
+                with col1:
+                    # Get unique societies and localities
+                    unique_societies = list(label_encoders['society'].classes_) if 'society' in label_encoders else []
+                    unique_localities = list(label_encoders['locality'].classes_) if 'locality' in label_encoders else []
+                    
+                    # Property inputs
+                    selected_locality = st.selectbox("Locality", unique_localities)
+                    selected_society = st.selectbox("Society", unique_societies)
+                    
+                with col2:
+                    selected_bhk = st.number_input("Bedrooms", min_value=1.0, max_value=7.0, value=3.0, step=0.5)
+                    selected_bathrooms = st.number_input("Bathrooms", min_value=1, max_value=7, value=2)
+                    selected_area = st.number_input("Built-up Area (sqft)", min_value=100, max_value=10000, value=1500)
+                    
+                with col3:
+                    furnishing_options = list(label_encoders['furnishing'].classes_) if 'furnishing' in label_encoders else []
+                    selected_furnishing = st.selectbox("Furnishing", furnishing_options)
+                    selected_floor = st.number_input("Floor", min_value=1, max_value=50, value=5)
+                    selected_total_floors = st.number_input("Total Floors", min_value=1, max_value=50, value=10)
+                    
+                # Optional fields
+                with st.expander("Additional Fields (Optional)"):
+                    building_age = st.slider("Building Age (years)", min_value=0, max_value=30, value=5)
+        
+                # Submit button - THIS IS THE ONLY BUTTON NEEDED
+                predict_submitted = st.form_submit_button("Predict Rent")
+
+            if predict_submitted:
             # Create input property dictionary
             input_property = {
                 'bedrooms': selected_bhk,
@@ -690,49 +696,49 @@ if df is not None and len(df) > 0:
             }
             
             # Predict button
-            if st.button("Predict Rent", key="predict_button"):
-                with st.spinner("Predicting..."):
-                    # ML-based Prediction
-                    # Step 1: Create the society-locality mapping
-                    society_locality_map = build_society_locality_map(df, label_encoders)
-                    # Step 2: Predict
-                    results = predict_rent_with_canonical_locality(input_property, society_locality_map, models, label_encoders)
-                    estimated_rent = estimate_rent_alternative(df,label_encoders,area=input_property['builtup_area'],locality=input_property['locality'],society=input_property['society'],furnishing=input_property['furnishing'])
+            # if st.button("Predict Rent", key="predict_button"):
+            with st.spinner("Predicting..."):
+                # ML-based Prediction
+                # Step 1: Create the society-locality mapping
+                society_locality_map = build_society_locality_map(df, label_encoders)
+                # Step 2: Predict
+                results = predict_rent_with_canonical_locality(input_property, society_locality_map, models, label_encoders)
+                estimated_rent = estimate_rent_alternative(df,label_encoders,area=input_property['builtup_area'],locality=input_property['locality'],society=input_property['society'],furnishing=input_property['furnishing'])
 
-                # Display results in columns
-                col1, col2, col3 = st.columns(3)
+            # Display results in columns
+            col1, col2, col3 = st.columns(3)
 
-                with col1:
-                    st.metric("Model A (Raw Rent)", f"₹{results['model_a_raw_prediction']:,.0f}/month")
+            with col1:
+                st.metric("Model A (Raw Rent)", f"₹{results['model_a_raw_prediction']:,.0f}/month")
 
-                with col2:
-                    st.metric("Model B (Log Rent)", f"₹{results['model_b_log_prediction']:,.0f}/month")
+            with col2:
+                st.metric("Model B (Log Rent)", f"₹{results['model_b_log_prediction']:,.0f}/month")
 
-                with col3:
-                    st.metric("Rent/sqft Estimate", f"₹{estimated_rent:,.0f}/month")
+            with col3:
+                st.metric("Rent/sqft Estimate", f"₹{estimated_rent:,.0f}/month")
 
+            
+            # Display explanation
+            with st.expander("Model Explanation"):
+                st.write("""
+                ### Prediction Models
                 
-                # Display explanation
-                with st.expander("Model Explanation"):
-                    st.write("""
-                    ### Prediction Models
-                    
-                    **Model A (Raw Rent)**: Trained on actual rent values. Performs well for properties in the middle price range.
-                    
-                    **Model B (Log Rent)**: Trained on log-transformed rent values, which helps to handle the skewed distribution of rent prices. Often performs better for high-end or low-end properties.
-                                
-                    **Rent/sqft Estimate**: Calculates the average rent per square foot for the selected society (or locality if society data is insufficient) and multiplies it by the area. Adjusted based on furnishing type.
+                **Model A (Raw Rent)**: Trained on actual rent values. Performs well for properties in the middle price range.
+                
+                **Model B (Log Rent)**: Trained on log-transformed rent values, which helps to handle the skewed distribution of rent prices. Often performs better for high-end or low-end properties.
+                            
+                **Rent/sqft Estimate**: Calculates the average rent per square foot for the selected society (or locality if society data is insufficient) and multiplies it by the area. Adjusted based on furnishing type.
 
-                    """)
-                    
-                    # Display model metrics
-                    st.write("### Model Performance Metrics")
-                    metrics_df = pd.DataFrame({
-                        'Model': ['Model A (Raw)', 'Model B (Log-transformed)'],
-                        'MAE': [f"₹{models['mae_a']:,.0f}", f"₹{models['mae_b']:,.0f}"],
-                        'RMSE': [f"₹{models['rmse_a']:,.0f}", f"₹{models['rmse_b']:,.0f}"]
-                    })
-                    st.table(metrics_df)
+                """)
+                
+                # Display model metrics
+                st.write("### Model Performance Metrics")
+                metrics_df = pd.DataFrame({
+                    'Model': ['Model A (Raw)', 'Model B (Log-transformed)'],
+                    'MAE': [f"₹{models['mae_a']:,.0f}", f"₹{models['mae_b']:,.0f}"],
+                    'RMSE': [f"₹{models['rmse_a']:,.0f}", f"₹{models['rmse_b']:,.0f}"]
+                })
+                st.table(metrics_df)
                 with st.expander("Explain Prediction (SHAP Analysis)"):
                     st.write("This visualization shows how each feature contributes to the predicted rent value:")
                     
