@@ -183,7 +183,11 @@ def load_and_process_data():
         if 'maintenance' not in df.columns:
             df['maintenance'] = 0
         else:
+            # df['maintenance'] = pd.to_numeric(df['maintenance'], errors='coerce').fillna(0)
+            df['maintenance'] = df['maintenance'].astype(str).str.replace(',', '')
+            # Then convert to numeric
             df['maintenance'] = pd.to_numeric(df['maintenance'], errors='coerce').fillna(0)
+
         
         if 'rent' in df.columns:
             df['total_rent'] = df['rent'] + df['maintenance']
