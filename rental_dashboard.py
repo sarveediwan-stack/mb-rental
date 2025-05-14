@@ -187,7 +187,7 @@ def load_and_process_data():
             df['maintenance'] = df['maintenance'].astype(str).str.replace(',', '')
             # Then convert to numeric
             df['maintenance'] = pd.to_numeric(df['maintenance'], errors='coerce').fillna(0)
-            st.success(df_raw['detail_maintenanceCharges'].value_counts().head(20))
+            st.success(df['maintenance'].value_counts().head(20))
 
 
 
