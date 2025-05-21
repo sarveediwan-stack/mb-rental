@@ -13,7 +13,7 @@ from geopy.distance import geodesic
 import os
 import io
 from datetime import datetime
-# from landlord_report import generate_landlord_report, create_landlord_pdf_report
+from landlord_report import generate_landlord_report, create_landlord_pdf_report
 
 
 if 'last_selected_society' not in st.session_state:
@@ -967,82 +967,82 @@ if df is not None and len(df) > 0:
             # and actionable recommendations.
             # """)
 
-                # Input columns layout
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        # Get unique societies and localities
-        unique_societies = list(label_encoders['society'].classes_) if 'society' in label_encoders else []
-        unique_localities = list(label_encoders['locality'].classes_) if 'locality' in label_encoders else []
-        
-        # Property inputs
-        selected_locality = st.selectbox("Locality", unique_localities, key="lr_locality")
-        selected_society = st.selectbox("Society", unique_societies, key="lr_society")
-        
-    with col2:
-        selected_bhk = st.number_input("Bedrooms", min_value=1.0, max_value=7.0, value=3.0, step=0.5, key="lr_bhk")
-        selected_bathrooms = st.number_input("Bathrooms", min_value=1, max_value=7, value=2, key="lr_bath")
-        selected_area = st.number_input("Built-up Area (sqft)", min_value=100, max_value=10000, value=1500, key="lr_area")
-        
-    with col3:
-        furnishing_options = list(label_encoders['furnishing'].classes_) if 'furnishing' in label_encoders else []
-        selected_furnishing = st.selectbox("Furnishing", furnishing_options, key="lr_furn")
-        selected_floor = st.number_input("Floor", min_value=1, max_value=50, value=5, key="lr_floor")
-        selected_total_floors = st.number_input("Total Floors", min_value=1, max_value=50, value=10, key="lr_total_floors")
-        
-    # Optional fields
-    with st.expander("Additional Fields"):
-        building_age = st.slider("Building Age (years)", min_value=0, max_value=30, value=5, key="lr_age")
-        property_id = st.text_input("Property ID (optional)", value="PROP001", key="lr_id")
-        
-        # Create input property dictionary
-        input_property = {
-            'property_id': property_id,
-            'bedrooms': selected_bhk,
-            'builtup_area': selected_area,
-            'bathrooms': selected_bathrooms,
-            'furnishing': selected_furnishing,
-            'locality': selected_locality,
-            'society': selected_society,
-            'floor': selected_floor,
-            'total_floors': selected_total_floors,
-            'building_age': building_age,
-            'floor_to_total_floors': selected_floor / selected_total_floors
-        }
-        
-        # Step 4: Add a simple Generate Report button that only calculates rent for now
-        if st.button("Generate Rent Estimate", type="primary", key="generate_estimate_button"):
-            # Calculate rent predictions with existing functions
-            with st.spinner("Calculating rent estimates..."):
-                # ML-based Prediction
-                results = predict_rent_dual(input_property, models, label_encoders)
+            # Input columns layout
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                # Get unique societies and localities
+                unique_societies = list(label_encoders['society'].classes_) if 'society' in label_encoders else []
+                unique_localities = list(label_encoders['locality'].classes_) if 'locality' in label_encoders else []
                 
-                # Area-based alternative estimate
-                estimated_rent = estimate_rent_alternative(df, label_encoders, 
-                                                         area=input_property['builtup_area'],
-                                                         locality=input_property['locality'],
-                                                         society=input_property['society'],
-                                                         furnishing=input_property['furnishing'])
+                # Property inputs
+                selected_locality = st.selectbox("Locality", unique_localities, key="lr_locality")
+                selected_society = st.selectbox("Society", unique_societies, key="lr_society")
                 
-                # Display the rent estimates
-                st.subheader("Rent Estimates")
+            with col2:
+                selected_bhk = st.number_input("Bedrooms", min_value=1.0, max_value=7.0, value=3.0, step=0.5, key="lr_bhk")
+                selected_bathrooms = st.number_input("Bathrooms", min_value=1, max_value=7, value=2, key="lr_bath")
+                selected_area = st.number_input("Built-up Area (sqft)", min_value=100, max_value=10000, value=1500, key="lr_area")
                 
-                col1, col2, col3 = st.columns(3)
-                col1.metric("Model A", f"₹{results['model_a_raw_prediction']:,.0f}/month")
-                col2.metric("Model B", f"₹{results['model_b_log_prediction']:,.0f}/month")
-                col3.metric("Area-based", f"₹{estimated_rent:,.0f}/month")
+            with col3:
+                furnishing_options = list(label_encoders['furnishing'].classes_) if 'furnishing' in label_encoders else []
+                selected_furnishing = st.selectbox("Furnishing", furnishing_options, key="lr_furn")
+                selected_floor = st.number_input("Floor", min_value=1, max_value=50, value=5, key="lr_floor")
+                selected_total_floors = st.number_input("Total Floors", min_value=1, max_value=50, value=10, key="lr_total_floors")
                 
-                # Calculate combined estimate
-                combined_estimate = (results['model_a_raw_prediction'] + 
-                                    results['model_b_log_prediction'] + 
-                                    estimated_rent) / 3
+            # Optional fields
+            with st.expander("Additional Fields"):
+                building_age = st.slider("Building Age (years)", min_value=0, max_value=30, value=5, key="lr_age")
+                property_id = st.text_input("Property ID (optional)", value="PROP001", key="lr_id")
                 
-                # Show combined estimate
-                st.metric("Combined Estimate", f"₹{combined_estimate:,.0f}/month")
+                # Create input property dictionary
+                input_property = {
+                    'property_id': property_id,
+                    'bedrooms': selected_bhk,
+                    'builtup_area': selected_area,
+                    'bathrooms': selected_bathrooms,
+                    'furnishing': selected_furnishing,
+                    'locality': selected_locality,
+                    'society': selected_society,
+                    'floor': selected_floor,
+                    'total_floors': selected_total_floors,
+                    'building_age': building_age,
+                    'floor_to_total_floors': selected_floor / selected_total_floors
+                }
                 
-                # Add message about full report
-                st.success("Basic rent estimate generated successfully!")
-                st.info("The full landlord report functionality will be available soon.")
+                # Step 4: Add a simple Generate Report button that only calculates rent for now
+                if st.button("Generate Rent Estimate", type="primary", key="generate_estimate_button"):
+                    # Calculate rent predictions with existing functions
+                    with st.spinner("Calculating rent estimates..."):
+                        # ML-based Prediction
+                        results = predict_rent_dual(input_property, models, label_encoders)
+                        
+                        # Area-based alternative estimate
+                        estimated_rent = estimate_rent_alternative(df, label_encoders, 
+                                                                 area=input_property['builtup_area'],
+                                                                 locality=input_property['locality'],
+                                                                 society=input_property['society'],
+                                                                 furnishing=input_property['furnishing'])
+                        
+                        # Display the rent estimates
+                        st.subheader("Rent Estimates")
+                        
+                        col1, col2, col3 = st.columns(3)
+                        col1.metric("Model A", f"₹{results['model_a_raw_prediction']:,.0f}/month")
+                        col2.metric("Model B", f"₹{results['model_b_log_prediction']:,.0f}/month")
+                        col3.metric("Area-based", f"₹{estimated_rent:,.0f}/month")
+                        
+                        # Calculate combined estimate
+                        combined_estimate = (results['model_a_raw_prediction'] + 
+                                            results['model_b_log_prediction'] + 
+                                            estimated_rent) / 3
+                        
+                        # Show combined estimate
+                        st.metric("Combined Estimate", f"₹{combined_estimate:,.0f}/month")
+                        
+                        # Add message about full report
+                        st.success("Basic rent estimate generated successfully!")
+                        st.info("The full landlord report functionality will be available soon.")
 
 else:
     st.error("Error processing the data. Please check your CSV file.")
