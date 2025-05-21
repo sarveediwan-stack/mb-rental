@@ -13,7 +13,7 @@ from geopy.distance import geodesic
 import os
 import io
 from datetime import datetime
-from landlord_report import generate_landlord_report, create_landlord_pdf_report
+# from landlord_report import generate_landlord_report, create_landlord_pdf_report
 
 
 if 'last_selected_society' not in st.session_state:
