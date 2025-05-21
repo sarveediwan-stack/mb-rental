@@ -13,6 +13,8 @@ from geopy.distance import geodesic
 import os
 import io
 from datetime import datetime
+from landlord_report import generate_landlord_report, create_landlord_pdf_report
+
 
 if 'last_selected_society' not in st.session_state:
     st.session_state.last_selected_society = None
@@ -964,497 +966,84 @@ if df is not None and len(df) > 0:
             # This report includes rent estimates, market position analysis, comparable properties, 
             # and actionable recommendations.
             # """)
-            
-            # Input columns layout
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                # Get unique societies and localities
-                unique_societies = list(label_encoders['society'].classes_) if 'society' in label_encoders else []
-                unique_localities = list(label_encoders['locality'].classes_) if 'locality' in label_encoders else []
+
+                # Input columns layout
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        # Get unique societies and localities
+        unique_societies = list(label_encoders['society'].classes_) if 'society' in label_encoders else []
+        unique_localities = list(label_encoders['locality'].classes_) if 'locality' in label_encoders else []
+        
+        # Property inputs
+        selected_locality = st.selectbox("Locality", unique_localities, key="lr_locality")
+        selected_society = st.selectbox("Society", unique_societies, key="lr_society")
+        
+    with col2:
+        selected_bhk = st.number_input("Bedrooms", min_value=1.0, max_value=7.0, value=3.0, step=0.5, key="lr_bhk")
+        selected_bathrooms = st.number_input("Bathrooms", min_value=1, max_value=7, value=2, key="lr_bath")
+        selected_area = st.number_input("Built-up Area (sqft)", min_value=100, max_value=10000, value=1500, key="lr_area")
+        
+    with col3:
+        furnishing_options = list(label_encoders['furnishing'].classes_) if 'furnishing' in label_encoders else []
+        selected_furnishing = st.selectbox("Furnishing", furnishing_options, key="lr_furn")
+        selected_floor = st.number_input("Floor", min_value=1, max_value=50, value=5, key="lr_floor")
+        selected_total_floors = st.number_input("Total Floors", min_value=1, max_value=50, value=10, key="lr_total_floors")
+        
+    # Optional fields
+    with st.expander("Additional Fields"):
+        building_age = st.slider("Building Age (years)", min_value=0, max_value=30, value=5, key="lr_age")
+        property_id = st.text_input("Property ID (optional)", value="PROP001", key="lr_id")
+        
+        # Create input property dictionary
+        input_property = {
+            'property_id': property_id,
+            'bedrooms': selected_bhk,
+            'builtup_area': selected_area,
+            'bathrooms': selected_bathrooms,
+            'furnishing': selected_furnishing,
+            'locality': selected_locality,
+            'society': selected_society,
+            'floor': selected_floor,
+            'total_floors': selected_total_floors,
+            'building_age': building_age,
+            'floor_to_total_floors': selected_floor / selected_total_floors
+        }
+        
+        # Step 4: Add a simple Generate Report button that only calculates rent for now
+        if st.button("Generate Rent Estimate", type="primary", key="generate_estimate_button"):
+            # Calculate rent predictions with existing functions
+            with st.spinner("Calculating rent estimates..."):
+                # ML-based Prediction
+                results = predict_rent_dual(input_property, models, label_encoders)
                 
-                # Property inputs
-                selected_locality = st.selectbox("Locality", unique_localities, key="lr_locality")
-                selected_society = st.selectbox("Society", unique_societies, key="lr_society")
+                # Area-based alternative estimate
+                estimated_rent = estimate_rent_alternative(df, label_encoders, 
+                                                         area=input_property['builtup_area'],
+                                                         locality=input_property['locality'],
+                                                         society=input_property['society'],
+                                                         furnishing=input_property['furnishing'])
                 
-            with col2:
-                selected_bhk = st.number_input("Bedrooms", min_value=1.0, max_value=7.0, value=3.0, step=0.5, key="lr_bhk")
-                selected_bathrooms = st.number_input("Bathrooms", min_value=1, max_value=7, value=2, key="lr_bath")
-                selected_area = st.number_input("Built-up Area (sqft)", min_value=100, max_value=10000, value=1500, key="lr_area")
+                # Display the rent estimates
+                st.subheader("Rent Estimates")
                 
-            with col3:
-                furnishing_options = list(label_encoders['furnishing'].classes_) if 'furnishing' in label_encoders else []
-                selected_furnishing = st.selectbox("Furnishing", furnishing_options, key="lr_furn")
-                selected_floor = st.number_input("Floor", min_value=1, max_value=50, value=5, key="lr_floor")
-                selected_total_floors = st.number_input("Total Floors", min_value=1, max_value=50, value=10, key="lr_total_floors")
+                col1, col2, col3 = st.columns(3)
+                col1.metric("Model A", f"₹{results['model_a_raw_prediction']:,.0f}/month")
+                col2.metric("Model B", f"₹{results['model_b_log_prediction']:,.0f}/month")
+                col3.metric("Area-based", f"₹{estimated_rent:,.0f}/month")
                 
-            # Optional fields
-            with st.expander("Additional Fields"):
-                building_age = st.slider("Building Age (years)", min_value=0, max_value=30, value=5, key="lr_age")
-                property_id = st.text_input("Property ID (optional)", value="PROP001", key="lr_id")
+                # Calculate combined estimate
+                combined_estimate = (results['model_a_raw_prediction'] + 
+                                    results['model_b_log_prediction'] + 
+                                    estimated_rent) / 3
                 
-            # Create input property dictionary
-            input_property = {
-                'property_id': property_id,
-                'bedrooms': selected_bhk,
-                'builtup_area': selected_area,
-                'bathrooms': selected_bathrooms,
-                'furnishing': selected_furnishing,
-                'locality': selected_locality,
-                'society': selected_society,
-                'floor': selected_floor,
-                'total_floors': selected_total_floors,
-                'building_age': building_age,
-                'floor_to_total_floors': selected_floor / selected_total_floors
-            }
-            
-            # Report options
-            option_col1, option_col2 = st.columns(2)
-            with option_col1:
-                generate_plots = st.checkbox("Include visualizations", value=True, key="lr_viz")
-            with option_col2:
-                use_model_b = st.checkbox("Use log-transformed model", value=True, 
-                                        help="Log-transformed model often performs better for high-end properties")
-            
-            # Generate Report button
-            if st.button("Generate Landlord Report", type="primary", key="generate_report_button"):
-                # Calculate rent predictions
-                with st.spinner("Calculating rent estimates..."):
-                    # ML-based Prediction
-                    results = predict_rent_dual(input_property, models, label_encoders)
-                    
-                    # Area-based alternative estimate
-                    estimated_rent = estimate_rent_alternative(df, label_encoders, 
-                                                             area=input_property['builtup_area'],
-                                                             locality=input_property['locality'],
-                                                             society=input_property['society'],
-                                                             furnishing=input_property['furnishing'])
-                    
-                    # Calculate total rent for the report
-                    input_property['total_rent'] = (results['model_a_raw_prediction'] + 
-                                                  results['model_b_log_prediction'] + 
-                                                  estimated_rent) / 3
-                    
-                    # Calculate rent per sqft
-                    input_property['rent_per_sqft'] = input_property['total_rent'] / input_property['builtup_area']
-                    
-                    # Display the rent estimates
-                    st.subheader("Rent Estimates")
-                    
-                    col1, col2, col3 = st.columns(3)
-                    col1.metric("Model A", f"₹{results['model_a_raw_prediction']:,.0f}/month")
-                    col2.metric("Model B", f"₹{results['model_b_log_prediction']:,.0f}/month")
-                    col3.metric("Area-based", f"₹{estimated_rent:,.0f}/month")
-                    
-                    # Calculate combined estimate
-                    combined_estimate = (results['model_a_raw_prediction'] + 
-                                        results['model_b_log_prediction'] + 
-                                        estimated_rent) / 3
-                    
-                    # Show combined estimate
-                    st.metric("Combined Estimate", f"₹{combined_estimate:,.0f}/month")
-                    
-                    # Package rent estimates for the report
-                    rent_estimates = {
-                        'model_a': results['model_a_raw_prediction'],
-                        'model_b': results['model_b_log_prediction'],
-                        'sqft_method': estimated_rent,
-                        'combined_estimate': combined_estimate
-                    }
+                # Show combined estimate
+                st.metric("Combined Estimate", f"₹{combined_estimate:,.0f}/month")
                 
-                # Generate the full report
-                with st.spinner("Generating comprehensive landlord report..."):
-                    # Generate the landlord report
-                    landlord_report = generate_landlord_report(
-                        input_property,  # Use the input_property directly
-                        df,
-                        ml_model=models['model_b'] if use_model_b else models['model_a'],
-                        feature_names=models['features'],
-                        label_encoders=label_encoders,
-                        generate_plots=generate_plots,
-                        rent_estimates=rent_estimates
-                    )
-                    
-                    # Display report sections
-                    
-                    # 1. Property details section
-                    st.subheader("📍 Property Details")
-                    details = landlord_report['property_details']
-                    
-                    # Create a formatted table for property details
-                    property_data = [
-                        ["Locality", details['location']['locality']],
-                        ["Society", details['location']['society']],
-                        [f"Configuration", f"{details['physical']['bedrooms']} BHK, {details['physical']['bathrooms']} Bathrooms"],
-                        ["Built-up Area", f"{details['physical']['builtup_area']:,} sq.ft."],
-                        ["Floor", f"{details['building']['floor']} out of {details['building']['total_floors']}"],
-                        ["Furnishing", details['condition']['furnishing']],
-                        ["Monthly Rent", f"₹{details['pricing']['total_rent']:,.0f}"],
-                        ["Rent per sq.ft.", f"₹{details['pricing']['rent_per_sqft']:.2f}"]
-                    ]
-                    
-                    # Display as a DataFrame for better formatting
-                    st.table(pd.DataFrame(property_data, columns=["Parameter", "Value"]))
-                    
-                    # 2. Market position section with percentile rankings
-                    st.subheader("📊 Market Position Analysis")
-                    
-                    market_position = landlord_report['market_position']
-                    position_category = market_position['position_category']
-                    primary_group = market_position['primary_comparison_group']
-                    
-                    # Format the primary comparison group name
-                    primary_group_display = primary_group.replace('_', ' ').title()
-                    
-                    st.write(f"Your property is positioned in the **{position_category}** segment, based on comparison with {primary_group_display} properties.")
-                    
-                    # Display percentile rankings
-                    st.write("#### Percentile Rankings")
-                    
-                    percentile_data = []
-                    percentile_data.append(["Comparison Group", "Rent Percentile", "Rent/sq-ft Percentile"])
-                    
-                    for group_name, values in market_position['percentile_ranks'].items():
-                        if group_name != 'bedroom_type':  # Skip this for cleaner report
-                            group_display = group_name.replace('_', ' ').title()
-                            rent_percentile = values.get('rent', 0)
-                            rent_sqft_percentile = values.get('rent_sqft', 0)
-                            
-                            percentile_data.append([
-                                group_display,
-                                f"{rent_percentile:.1f}th",
-                                f"{rent_sqft_percentile:.1f}th"
-                            ])
-                    
-                    # Display as a DataFrame for better formatting
-                    st.table(pd.DataFrame(percentile_data[1:], columns=percentile_data[0]))
-                    
-                    # Your market position progress bar
-                    st.write("#### Your Market Position")
-                    
-                    # Get the appropriate percentile for the progress bar from same comparison group as in PDF
-                    bar_percentile = 0
-                    if 'same_society_same_bhk' in market_position['percentile_ranks']:
-                        bar_percentile = market_position['percentile_ranks']['same_society_same_bhk'].get('rent_sqft', 0)
-                    elif 'overall_market' in market_position['percentile_ranks']:
-                        bar_percentile = market_position['percentile_ranks']['overall_market'].get('rent_sqft', 0)
-                    
-                    # Create a progress bar
-                    st.progress(bar_percentile / 100)
-                    
-                    # Add labels for clarity
-                    col1, col2, col3 = st.columns([1, 1, 1])
-                    col1.write("Below Market")
-                    col2.write("At Market")
-                    col3.write("Above Market")
-                    
-                    st.write(f"You are at the **{bar_percentile:.1f}th percentile** of the market")
-                    
-                    # Premium/Discount Analysis
-                    st.write("#### Premium/Discount Analysis")
-                    
-                    premium_data = []
-                    premium_data.append(["Comparison Group", "Premium/Discount"])
-                    
-                    # Helper function to format premium/discount values
-                    def format_premium(value):
-                        status = "PREMIUM" if value > 0 else "DISCOUNT"
-                        return f"{abs(value):.1f}% {status}"
-                    
-                    premium_discount = market_position['premium_discount']
-                    
-                    # Use the same groups as in the PDF report
-                    society_premium = premium_discount.get('same_society_same_bhk_avg', 
-                                                        premium_discount.get('society_avg', 0))
-                    locality_premium = premium_discount.get('same_locality_same_bhk_avg', 
-                                                         premium_discount.get('locality_avg', 0))
-                    overall_premium = premium_discount.get('overall_market_avg', 
-                                                        premium_discount.get('locality_avg', 0))
-                    comparables_premium = premium_discount.get('comparables_avg', overall_premium)
-                    
-                    premium_data.extend([
-                        ["Same Society & BHK", format_premium(society_premium)],
-                        ["Same Locality & BHK", format_premium(locality_premium)],
-                        ["Overall Market", format_premium(overall_premium)],
-                        ["Primary Comparables", format_premium(comparables_premium)]
-                    ])
-                    
-                    # Display as a DataFrame for better formatting
-                    st.table(pd.DataFrame(premium_data[1:], columns=premium_data[0]))
-                    
-                    # 3. Comparable properties analysis
-                    st.subheader("🏘️ Comparable Properties Analysis")
-                    
-                    st.write("The following analysis shows how your property compares to different segments of the market:")
-                    
-                    # Create tabs for different tiers of comparables
-                    comp_tabs = st.tabs([
-                        "Same Society & BHK", 
-                        "Same Locality & BHK",
-                        "Same Society Different BHK", 
-                        "Same Locality Similar BHK"
-                    ])
-                    
-                    # Define a function to display comparable tier data
-                    def display_comparable_tier(tier_data, tier_name):
-                        if not tier_data.get('available', False) or tier_data.get('count', 0) < 3:
-                            st.info(f"Insufficient {tier_name} properties for analysis.")
-                            return
-                        
-                        # Show basic stats
-                        cols = st.columns(4)
-                        cols[0].metric("Properties", tier_data['count'])
-                        cols[1].metric("Avg. Rent", f"₹{tier_data['avg_rent']:,.0f}")
-                        cols[2].metric("Min. Rent", f"₹{tier_data['min_rent']:,.0f}")
-                        cols[3].metric("Max. Rent", f"₹{tier_data['max_rent']:,.0f}")
-                        
-                        # Show premium/discount 
-                        premium = tier_data.get('premium_discount', 0)
-                        premium_text = f"{abs(premium):.1f}% {'PREMIUM' if premium > 0 else 'DISCOUNT'}"
-                        
-                        # Create a progress bar to visualize position
-                        st.write(f"**Your property vs. {tier_name}:** {premium_text}")
-                        
-                        # Calculate position for progress bar (0-1 scale)
-                        position = 0.5 + (premium / 200)  # Center is market rate, right is premium, left is discount
-                        position = max(0, min(1, position))  # Clamp between 0 and 1
-                        
-                        # Display progress bar
-                        st.progress(position)
-                        
-                        # Add labels
-                        cols = st.columns([1, 2, 1])
-                        cols[0].write("Below market")
-                        cols[1].write("At market")
-                        cols[2].write("Above market")
-                        
-                        # Add rent per square foot analysis if available
-                        if 'avg_rent_psf' in tier_data:
-                            st.write("**Rent per Square Foot Analysis**")
-                            cols = st.columns(3)
-                            cols[0].metric("Avg. ₹/sqft", f"₹{tier_data['avg_rent_psf']:.2f}")
-                            
-                            # Show premium/discount for rent per sqft
-                            premium_psf = tier_data.get('premium_discount_psf', 0)
-                            premium_psf_text = f"{abs(premium_psf):.1f}% {'PREMIUM' if premium_psf > 0 else 'DISCOUNT'}"
-                            st.write(f"**Your property's ₹/sqft vs. {tier_name}:** {premium_psf_text}")
-                    
-                    # Display each tier in its tab
-                    with comp_tabs[0]:
-                        display_comparable_tier(
-                            landlord_report['comparables']['tiered_analysis'].get('same_society_same_bhk', {}), 
-                            "Same Society & BHK"
-                        )
-                    
-                    with comp_tabs[1]:
-                        display_comparable_tier(
-                            landlord_report['comparables']['tiered_analysis'].get('same_locality_same_bhk', {}), 
-                            "Same Locality & BHK"
-                        )
-                    
-                    with comp_tabs[2]:
-                        display_comparable_tier(
-                            landlord_report['comparables']['tiered_analysis'].get('same_society_diff_bhk', {}), 
-                            "Same Society Different BHK"
-                        )
-                    
-                    with comp_tabs[3]:
-                        display_comparable_tier(
-                            landlord_report['comparables']['tiered_analysis'].get('same_locality_similar_bhk', {}), 
-                            "Same Locality Similar BHK"
-                        )
-                    
-                    # 4. Market visualizations if enabled
-                    if generate_plots:
-                        st.subheader("📈 Market Visualizations")
-                        
-                        # Create tabs for different visualizations
-                        viz_tabs = st.tabs([
-                            "Position Chart", 
-                            "Feature Comparison", 
-                            "Feature Impact", 
-                            "Market Distribution"
-                        ])
-                        
-                        # Position chart
-                        with viz_tabs[0]:
-                            st.write("### Your Property vs. Comparable Properties")
-                            st.write("This chart shows how your property's rent (red line) compares to similar properties in the same market segment.")
-                            
-                            # Get or generate the visualization
-                            position_chart = None
-                            if 'position_chart' in landlord_report.get('visualizations', {}):
-                                position_chart = landlord_report['visualizations']['position_chart']
-                            elif 'position_chart' in landlord_report.get('visualization_generators', {}):
-                                try:
-                                    position_chart = landlord_report['visualization_generators']['position_chart']()
-                                except Exception as e:
-                                    st.error(f"Error generating position chart: {str(e)}")
-                            
-                            if position_chart:
-                                st.pyplot(position_chart)
-                            else:
-                                st.info("Position chart not available for this property.")
-                        
-                        # Feature radar chart
-                        with viz_tabs[1]:
-                            st.write("### Property Feature Comparison")
-                            st.write("This radar chart compares your property's key features to comparable properties. Areas where your property's line (red) extends further than others indicate competitive strengths.")
-                            
-                            # Get or generate the visualization
-                            feature_radar = None
-                            if 'feature_radar' in landlord_report.get('visualizations', {}):
-                                feature_radar = landlord_report['visualizations']['feature_radar']
-                            elif 'feature_radar' in landlord_report.get('visualization_generators', {}):
-                                try:
-                                    feature_radar = landlord_report['visualization_generators']['feature_radar']()
-                                except Exception as e:
-                                    st.error(f"Error generating feature radar: {str(e)}")
-                            
-                            if feature_radar:
-                                st.pyplot(feature_radar)
-                            else:
-                                st.info("Feature comparison chart not available for this property.")
-                        
-                        # Feature impact chart
-                        with viz_tabs[2]:
-                            st.write("### Factors Affecting Rent Value")
-                            st.write("This chart shows how different features contribute to your property's rent value. Green bars indicate positive contributions, red bars indicate negative impacts.")
-                            
-                            # Get or generate the visualization
-                            feature_impact = None
-                            if 'feature_impact' in landlord_report.get('visualizations', {}):
-                                feature_impact = landlord_report['visualizations']['feature_impact']
-                            elif 'feature_impact' in landlord_report.get('visualization_generators', {}):
-                                try:
-                                    feature_impact = landlord_report['visualization_generators']['feature_impact']()
-                                except Exception as e:
-                                    st.error(f"Error generating feature impact: {str(e)}")
-                            
-                            if feature_impact:
-                                st.pyplot(feature_impact)
-                            else:
-                                st.info("Feature impact chart not available for this property.")
-                        
-                        # Market distribution chart
-                        with viz_tabs[3]:
-                            st.write("### Market Rent Distribution")
-                            
-                            # Add percentile info
-                            percentile = landlord_report['market_position']['percentile_ranks'].get('overall_market', {}).get('rent', 0)
-                            st.write(f"This chart shows your property's position in the overall market rent distribution. Your property is at the **{percentile:.0f}th percentile** of the market.")
-                            
-                            # Get or generate the visualization
-                            rent_distribution = None
-                            if 'rent_distribution' in landlord_report.get('visualizations', {}):
-                                rent_distribution = landlord_report['visualizations']['rent_distribution']
-                            elif 'rent_distribution' in landlord_report.get('visualization_generators', {}):
-                                try:
-                                    rent_distribution = landlord_report['visualization_generators']['rent_distribution']()
-                                except Exception as e:
-                                    st.error(f"Error generating rent distribution: {str(e)}")
-                            
-                            if rent_distribution:
-                                st.pyplot(rent_distribution)
-                            else:
-                                st.info("Rent distribution chart not available for this property.")
-                    
-                    # 5. Summary and recommendations
-                    st.subheader("📑 Summary & Recommendations")
-                    
-                    # Basic summary text
-                    property_rent = landlord_report['property_details']['pricing']['total_rent']
-                    position_category = landlord_report['market_position']['position_category']
-                    
-                    st.write(f"Your property is currently positioned in the **{position_category}** segment of the market with a monthly rent of ₹{property_rent:,}.")
-                    
-                    # Get premium/discount from most relevant comparable group
-                    primary_premium = landlord_report['market_position']['premium_discount'].get('comparables_avg', 0)
-                    
-                    # Market position insights based on category
-                    st.write("#### Market Position Insights")
-                    
-                    if position_category in ["Premium", "Above Market"]:
-                        if primary_premium > 15:
-                            st.write("Your property commands a significant premium over comparable properties. This premium positioning should be supported by maintaining excellent property condition and amenities to justify the higher rent.")
-                        else:
-                            st.write("Your property is positioned above the market average, indicating strong features or amenities that tenants value. This is a good position that balances revenue optimization with occupancy.")
-                    elif position_category == "At Market":
-                        st.write("Your property is priced in line with the market, which should help balance rental income with minimal vacancy periods. This is typically an optimal position for steady income.")
-                    elif position_category in ["Below Market", "Significantly Below Market"]:
-                        if primary_premium < -15:
-                            st.write("Your property is priced significantly below comparable properties. There may be opportunity to increase rent gradually, especially if you make improvements to the property or when renewing leases.")
-                        else:
-                            st.write("Your property is priced somewhat below the market, which can help minimize vacancy but may mean you're leaving potential rental income on the table.")
-                    else:
-                        st.write("Insufficient data to provide specific market position insights.")
-                    
-                    # Recommendations
-                    st.write("#### Recommendations")
-                    
-                    # Create recommendations based on market position
-                    recommendations = []
-                    
-                    if position_category in ["Premium", "Above Market"]:
-                        recommendations = [
-                            "Maintain high standards of property maintenance and amenities to justify the premium rent",
-                            "Consider investing in property upgrades that will help maintain your competitive advantage"
-                        ]
-                        if primary_premium > 20:
-                            recommendations.append("Monitor vacancy periods closely as very high premiums can lead to longer vacancies")
-                    elif position_category == "At Market":
-                        recommendations = [
-                            "Consider modest rent increases in line with market growth to maintain position",
-                            "Focus on tenant retention as your pricing is competitive",
-                            "Monitor market trends to ensure your property stays aligned with comparable properties"
-                        ]
-                    else:  # Below Market
-                        recommendations = [
-                            "Consider a moderate rent increase with your next lease renewal",
-                            "Evaluate if there are property improvements that could justify higher rent",
-                            "Review your tenant acquisition strategy as below-market rent should allow for selectivity"
-                        ]
-                    
-                    # Display recommendations as bullets
-                    for rec in recommendations:
-                        st.write(f"• {rec}")
-                    
-                    # Generate PDF button
-                    st.write("#### Download Full Report")
-                    st.write("Click below to generate and download a detailed PDF report.")
-                    
-                    if st.button("Generate PDF Report", key="generate_pdf_button"):
-                        with st.spinner("Creating PDF report..."):
-                            try:
-                                # Ensure reports directory exists
-                                import os
-                                os.makedirs("reports", exist_ok=True)
-                                
-                                # Generate the PDF
-                                pdf_path = create_landlord_pdf_report(
-                                    landlord_report, 
-                                    label_encoders=label_encoders,
-                                    output_dir="reports"
-                                )
-                                
-                                # Read the generated PDF for download
-                                with open(pdf_path, "rb") as pdf_file:
-                                    pdf_bytes = pdf_file.read()
-                                
-                                # Display download button
-                                st.success("✅ PDF report generated successfully!")
-                                st.download_button(
-                                    label="Download PDF Report",
-                                    data=pdf_bytes,
-                                    file_name=f"Landlord_Report_{property_id}.pdf",
-                                    mime="application/pdf"
-                                )
-                            except Exception as e:
-                                st.error(f"Error creating PDF report: {str(e)}")
-                                st.info("Please check if the reports directory is writable.")
-                    
-                    # Add disclaimer
-                    st.caption("Note: This analysis is based on current market data and is intended for informational purposes only. Actual market conditions may vary.")
+                # Add message about full report
+                st.success("Basic rent estimate generated successfully!")
+                st.info("The full landlord report functionality will be available soon.")
+
 else:
     st.error("Error processing the data. Please check your CSV file.")
     
