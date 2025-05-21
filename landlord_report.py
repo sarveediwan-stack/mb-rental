@@ -1,4 +1,4 @@
-# import os
+import os
 # from datetime import datetime
 # from reportlab.lib import colors
 # from reportlab.lib.pagesizes import A4
@@ -8,8 +8,8 @@
 # from reportlab.lib.units import inch, cm
 # from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT, TA_JUSTIFY
 # import matplotlib.pyplot as plt
-# import io
-# import numpy as np
+import io
+import numpy as np
 
 class LandlordReportGenerator:
     #Class for generating PDF reports for landlords based on rental property analysis
