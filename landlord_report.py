@@ -12,10 +12,10 @@ import io
 import numpy as np
 
 class LandlordReportGenerator:
-    """Class for generating PDF reports for landlords based on rental property analysis"""
+    #Class for generating PDF reports for landlords based on rental property analysis
 
     def __init__(self, output_dir="reports", label_encoders = None):
-        """Initialize the report generator with an output directory"""
+        # """Initialize the report generator with an output directory"""
         self.output_dir = output_dir
         self.label_encoders = label_encoders or {}
 
@@ -29,16 +29,16 @@ class LandlordReportGenerator:
         self._create_styles()
 
     def _decode_category(self, code, label_encoder):
-        """
-        Decode a category value using a label encoder
+        # """
+        # Decode a category value using a label encoder
 
-        Parameters:
-        code: The encoded value (int/float)
-        label_encoder: The scikit-learn LabelEncoder that was used for encoding
+        # Parameters:
+        # code: The encoded value (int/float)
+        # label_encoder: The scikit-learn LabelEncoder that was used for encoding
 
-        Returns:
-        str: The decoded original string value
-        """
+        # Returns:
+        # str: The decoded original string value
+        # """
         if not hasattr(label_encoder, 'classes_'):
             return str(code)  # No classes to decode with
 
@@ -56,19 +56,19 @@ class LandlordReportGenerator:
         return str(code)  # Fall back to string representation
 
     def _decode_value(self, value, category):
-        """
-        Decode a category value using the label encoder.
+        # """
+        # Decode a category value using the label encoder.
 
-        This assumes that the encoded values are indices into the
-        label_encoder.classes_ array, which contains the original text values.
+        # This assumes that the encoded values are indices into the
+        # label_encoder.classes_ array, which contains the original text values.
 
-        Parameters:
-        value: The encoded value (typically a numpy.int64)
-        category: Category name ('society', 'locality', etc.)
+        # Parameters:
+        # value: The encoded value (typically a numpy.int64)
+        # category: Category name ('society', 'locality', etc.)
 
-        Returns:
-        str: The decoded text value
-        """
+        # Returns:
+        # str: The decoded text value
+        # """
         # If already a string, return as is
         if isinstance(value, str):
             return value
@@ -103,7 +103,7 @@ class LandlordReportGenerator:
 
 
     def _create_styles(self):
-        """Create custom styles for the report"""
+        # """Create custom styles for the report"""
         # Report title style
         self.styles.add(ParagraphStyle(
             name='ReportTitle',
@@ -184,16 +184,16 @@ class LandlordReportGenerator:
         ))
 
     def generate_report(self, report_data, property_id=None):
-        """
-        Generate a PDF report based on the provided landlord report data
+        # """
+        # Generate a PDF report based on the provided landlord report data
 
-        Parameters:
-        report_data: The dictionary returned by generate_landlord_report
-        property_id: Optional identifier for the property (for filename)
+        # Parameters:
+        # report_data: The dictionary returned by generate_landlord_report
+        # property_id: Optional identifier for the property (for filename)
 
-        Returns:
-        str: Path to the generated PDF file
-        """
+        # Returns:
+        # str: Path to the generated PDF file
+        # """
         # Set up filename
         if property_id is None:
             property_id = report_data.get('property_id', 'Unknown')
@@ -230,7 +230,7 @@ class LandlordReportGenerator:
         return filepath
 
     def _add_header(self, elements, report_data):
-        """Add the report header section"""
+        # """Add the report header section"""
         # Report title
         elements.append(Paragraph("Rental Market Analysis Report", self.styles['ReportTitle']))
 
@@ -274,7 +274,7 @@ class LandlordReportGenerator:
         # elements.append(Spacer(1, 0.2*inch))
 
     def _add_property_details(self, elements, report_data):
-        """Add the property details section"""
+        # """Add the property details section"""
         # Section header
         elements.append(Paragraph("Property Details", self.styles['ReportSubtitle']))
 
@@ -353,7 +353,7 @@ class LandlordReportGenerator:
 
 
     def _add_rent_estimate(self, elements, report_data):
-        """Add rent estimate section with range visualization"""
+        # """Add rent estimate section with range visualization"""
         # Section header
         elements.append(Paragraph("Rent Estimate", self.styles['ReportSubtitle']))
 
@@ -395,7 +395,7 @@ class LandlordReportGenerator:
         elements.append(Spacer(1, 0.05*inch))
 
     def _create_rent_estimate_visual(self, estimated_rent, lower_bound, upper_bound):
-        """Create a visual representation of the rent estimate range"""
+        # """Create a visual representation of the rent estimate range"""
         # Calculate table data for visual representation
         data = [
             [f"Rs. {lower_bound:,.0f}", f"Rs. {estimated_rent:,.0f}", f"Rs. {upper_bound:,.0f}"],
@@ -452,7 +452,7 @@ class LandlordReportGenerator:
         return table
 
     def _add_market_position(self, elements, report_data):
-        """Add the market position section"""
+        # """Add the market position section"""
         # Section header
         elements.append(Paragraph("Market Position Analysis", self.styles['ReportSubtitle']))
 
@@ -712,7 +712,7 @@ class LandlordReportGenerator:
         elements.append(Spacer(1, 0.1*inch))
 
     def _add_comparables_analysis(self, elements, report_data):
-        """Add the comparables analysis section"""
+        # """Add the comparables analysis section"""
         # Section header
         elements.append(Paragraph("Comparable Properties Analysis", self.styles['ReportSubtitle']))
 
@@ -910,7 +910,7 @@ class LandlordReportGenerator:
         # elements.append(Spacer(1, 0.05*inch))
 
     def _add_visualizations(self, elements, report_data):
-        """Add visualization charts to the report"""
+        # """Add visualization charts to the report"""
         # Section header
         elements.append(Paragraph("Market Visualizations", self.styles['ReportSubtitle']))
 
@@ -920,7 +920,7 @@ class LandlordReportGenerator:
 
         # Function to render matplotlib figures to ReportLab images
         def fig_to_image(fig, width=6*inch, max_height=4.5*inch):
-            """Convert matplotlib figure to ReportLab Image"""
+            # """Convert matplotlib figure to ReportLab Image"""
             # Get the figure's aspect ratio
             fig_width = fig.get_figwidth()
             fig_height = fig.get_figheight()
@@ -1024,16 +1024,16 @@ class LandlordReportGenerator:
             elements.append(Paragraph("Rent distribution chart not available", self.styles['ReportNote']))
 
     def decode_category(code, label_encoder):
-        """
-        Decode a category value using a label encoder
+        # """
+        # Decode a category value using a label encoder
 
-        Parameters:
-        code: The encoded value (int/float)
-        label_encoder: The scikit-learn LabelEncoder that was used for encoding
+        # Parameters:
+        # code: The encoded value (int/float)
+        # label_encoder: The scikit-learn LabelEncoder that was used for encoding
 
-        Returns:
-        str: The decoded original string value
-        """
+        # Returns:
+        # str: The decoded original string value
+        # """
         if not hasattr(label_encoder, 'classes_'):
             return str(code)  # No classes to decode with
 
@@ -1124,16 +1124,16 @@ class LandlordReportGenerator:
 
 # Example integration function - Call this from your main code
 def create_landlord_pdf_report(report_data, label_encoders = None, output_dir="reports"):
-    """
-    Create a PDF report from landlord report data
+    # """
+    # Create a PDF report from landlord report data
 
-    Parameters:
-    report_data: Dict - The data structure returned by generate_landlord_report()
-    output_dir: str - Directory to save the PDF report
+    # Parameters:
+    # report_data: Dict - The data structure returned by generate_landlord_report()
+    # output_dir: str - Directory to save the PDF report
 
-    Returns:
-    str: Path to generated PDF file
-    """
+    # Returns:
+    # str: Path to generated PDF file
+    # """
     report_generator = LandlordReportGenerator(output_dir=output_dir, label_encoders = label_encoders)
     return report_generator.generate_report(report_data)
 
@@ -1153,7 +1153,7 @@ plt.rcParams.update({'font.size': 12, 'figure.figsize': (12, 8)})
 
 # Sample data preprocessing function
 def prepare_data(df):
-    """Prepare the dataset for analysis"""
+    # """Prepare the dataset for analysis"""
     df = df.copy()
 
     # Calculate rent per square foot if not already present
@@ -1513,17 +1513,17 @@ def find_comparable_properties(property_data, full_dataset, num_comparables=10):
     }
 
 def calculate_market_position(property_data, comparables_dict, full_dataset):
-    """
-    Calculate the market position of the property using hierarchical comparables - with improved error handling
+    # """
+    # Calculate the market position of the property using hierarchical comparables - with improved error handling
 
-    Parameters:
-    property_data: Series or dict with target property features
-    comparables_dict: Dictionary with different tiers of comparable properties
-    full_dataset: Full dataset for broader market comparison
+    # Parameters:
+    # property_data: Series or dict with target property features
+    # comparables_dict: Dictionary with different tiers of comparable properties
+    # full_dataset: Full dataset for broader market comparison
 
-    Returns:
-    dict: Market position metrics
-    """
+    # Returns:
+    # dict: Market position metrics
+    # """
     # Convert property data to standardized format if needed
     if not isinstance(property_data, pd.Series):
         property_data = pd.Series(property_data)
@@ -1662,16 +1662,16 @@ def calculate_market_position(property_data, comparables_dict, full_dataset):
     }
 
 def create_property_position_chart(property_data, comparables_dict):
-    """
-    Create a chart showing property position among comparables
+    # """
+    # Create a chart showing property position among comparables
 
-    Parameters:
-    property_data: Series with property features
-    comparables_dict: Dictionary with different tiers of comparable properties
+    # Parameters:
+    # property_data: Series with property features
+    # comparables_dict: Dictionary with different tiers of comparable properties
 
-    Returns:
-    Figure: Matplotlib figure object
-    """
+    # Returns:
+    # Figure: Matplotlib figure object
+    # """
     property_rent = property_data.get('total_rent')
 
     # Determine which comparables to use, in priority order
@@ -1725,15 +1725,15 @@ def create_property_position_chart(property_data, comparables_dict):
     return plt.gcf()
 
 def create_feature_comparison_radar(property_data, comparables_dict, full_dataset):
-    """
-    Create an enhanced radar chart comparing property features to various comparable groups
-    with additional market positioning metrics
+    # """
+    # Create an enhanced radar chart comparing property features to various comparable groups
+    # with additional market positioning metrics
 
-    Parameters:
-    property_data: Dict or Series with property features
-    comparables_dict: Dictionary with different tiers of comparable properties
-    full_dataset: Complete dataset for percentile calculations
-    """
+    # Parameters:
+    # property_data: Dict or Series with property features
+    # comparables_dict: Dictionary with different tiers of comparable properties
+    # full_dataset: Complete dataset for percentile calculations
+    # """
     # Select basic features for radar chart
     basic_features = ['builtup_area', 'floor_to_total_floors', 'bathrooms', 'rent_per_sqft']
 
@@ -1906,7 +1906,7 @@ def create_feature_comparison_radar(property_data, comparables_dict, full_datase
     return fig
 
 def plot_rent_distribution_with_property(property_data, full_dataset):
-    """Plot the rent distribution with the property's position highlighted"""
+    # """Plot the rent distribution with the property's position highlighted"""
     plt.figure(figsize=(10, 6))
 
     # Plot overall rent distribution
@@ -1931,10 +1931,10 @@ def plot_rent_distribution_with_property(property_data, full_dataset):
     return plt.gcf()
 
 def create_robust_shap_waterfall_chart(property_data, ml_model, feature_names, label_encoders=None, target_prediction=None):
-    """
-    Create a robust waterfall chart with proper encoding of categorical variables
-    and scale it to match a target prediction value. Display from top to bottom.
-    """
+    # """
+    # Create a robust waterfall chart with proper encoding of categorical variables
+    # and scale it to match a target prediction value. Display from top to bottom.
+    # """
     try:
         # Basic validation
         if ml_model is None or feature_names is None:
@@ -2703,7 +2703,7 @@ def create_robust_shap_waterfall_chart(property_data, ml_model, feature_names, l
 #         return dummy_waterfall_chart(property_data, target_prediction)
 
 def create_feature_importance_fallback(property_data, ml_model, feature_names):
-    """Ultra-simple fallback visualization using direct feature importances"""
+    # """Ultra-simple fallback visualization using direct feature importances"""
     try:
         fig, ax = plt.subplots(figsize=(10, 6))
 
@@ -2746,7 +2746,7 @@ def create_feature_importance_fallback(property_data, ml_model, feature_names):
 
 # Keep the dummy function as a fallback
 def dummy_waterfall_chart(property_data, target_prediction = None):
-   """Create a dummy waterfall chart for feature impact"""
+   # """Create a dummy waterfall chart for feature impact"""
    plt.figure(figsize=(12, 8))
 
    # Define features and their impact
@@ -2793,20 +2793,20 @@ def dummy_waterfall_chart(property_data, target_prediction = None):
    return plt.gcf()
 
 def generate_landlord_report(property_data, full_dataset, ml_model=None, feature_names=None, label_encoders=None, generate_plots=False, rent_estimates = None):
-    """
-    Generate a complete landlord report for a specific property with lazy-loaded visualizations
+    # """
+    # Generate a complete landlord report for a specific property with lazy-loaded visualizations
 
-    Parameters:
-    property_data: Series or dict with target property features
-    full_dataset: DataFrame with all properties
-    ml_model: Trained ML model for predictions (optional)
-    feature_names: List of feature names (optional)
-    label_encoders: Dictionary of label encoders (optional)
-    generate_plots: Whether to generate all plots immediately (default: False)
+    # Parameters:
+    # property_data: Series or dict with target property features
+    # full_dataset: DataFrame with all properties
+    # ml_model: Trained ML model for predictions (optional)
+    # feature_names: List of feature names (optional)
+    # label_encoders: Dictionary of label encoders (optional)
+    # generate_plots: Whether to generate all plots immediately (default: False)
 
-    Returns:
-    dict: Complete report data and visualizations
-    """
+    # Returns:
+    # dict: Complete report data and visualizations
+    # """
     # Prepare data
     full_dataset = prepare_data(full_dataset)
     feature_names = [
@@ -3035,13 +3035,13 @@ def generate_landlord_report(property_data, full_dataset, ml_model=None, feature
     return report
 
 def show_full_report_data(report):
-    """
-    Display the complete data structure of a landlord report
-    to help identify what's available for the display function.
+    # """
+    # Display the complete data structure of a landlord report
+    # to help identify what's available for the display function.
 
-    Parameters:
-    report: The dictionary returned by generate_landlord_report
-    """
+    # Parameters:
+    # report: The dictionary returned by generate_landlord_report
+    # """
     import json
     from pprint import pprint
 
@@ -3169,14 +3169,14 @@ def show_full_report_data(report):
     print("\n==== END OF REPORT DATA STRUCTURE ====")
 
 def display_landlord_report_visuals(report, max_charts=2, selected_charts=None):
-    """
-    Display a curated selection of visualizations from the landlord report
+    # """
+    # Display a curated selection of visualizations from the landlord report
 
-    Parameters:
-    report: The landlord report dictionary
-    max_charts: Maximum number of charts to display (default: 2)
-    selected_charts: List of specific chart names to display (optional)
-    """
+    # Parameters:
+    # report: The landlord report dictionary
+    # max_charts: Maximum number of charts to display (default: 2)
+    # selected_charts: List of specific chart names to display (optional)
+    # """
     # Get already generated visualizations
     visualizations = report.get('visualizations', {})
     # Get visualization generators for lazy loading
@@ -3272,15 +3272,15 @@ def display_landlord_report_visuals(report, max_charts=2, selected_charts=None):
             print(f"Your property is at the {percentile:.0f}th percentile of the market.")
 
 def safe_format_categorical(value):
-    """
-    Format categorical value with type safety - handles any type without errors
+    # """
+    # Format categorical value with type safety - handles any type without errors
 
-    Parameters:
-    value: The value to format (can be string, int, float, etc.)
+    # Parameters:
+    # value: The value to format (can be string, int, float, etc.)
 
-    Returns:
-    str: Safely formatted string representation of the value
-    """
+    # Returns:
+    # str: Safely formatted string representation of the value
+    # """
     import numpy as np  # Ensure numpy is imported
 
     if isinstance(value, str):
@@ -3418,17 +3418,17 @@ def display_landlord_report(report, chart_selection=None):
     print("="*50)
 
 def encode_property_for_analysis(property_data, df, label_encoders=None):
-    """
-    Encode property data to match dataset format and prepare for analysis
+    # """
+    # Encode property data to match dataset format and prepare for analysis
 
-    Parameters:
-    property_data: Dict with property features (original format)
-    df: DataFrame with all properties
-    label_encoders: Dictionary of label encoders (optional)
-    __add
-    Returns:
-    Dict: Property data with values encoded to match dataset format
-    """
+    # Parameters:
+    # property_data: Dict with property features (original format)
+    # df: DataFrame with all properties
+    # label_encoders: Dictionary of label encoders (optional)
+    # __add
+    # Returns:
+    # Dict: Property data with values encoded to match dataset format
+    # """
     # Create a copy to avoid modifying the original
     encoded_property = property_data.copy()
 
@@ -3552,15 +3552,15 @@ def encode_property_for_analysis(property_data, df, label_encoders=None):
     return encoded_property
 
 def main(df, ml_model=None, label_encoders=None, feature_names=None):
-    """
-    Main function to run the entire analysis
+    # """
+    # Main function to run the entire analysis
 
-    Parameters:
-    df: DataFrame with rental property data
-    ml_model: Trained ML model for predictions (from another Colab cell)
-    label_encoders: Dictionary of label encoders (from another Colab cell)
-    feature_names: List of feature names used by the model (from another Colab cell)
-    """
+    # Parameters:
+    # df: DataFrame with rental property data
+    # ml_model: Trained ML model for predictions (from another Colab cell)
+    # label_encoders: Dictionary of label encoders (from another Colab cell)
+    # feature_names: List of feature names used by the model (from another Colab cell)
+    # """
     # Prepare the dataset
     df = prepare_data(df)
 
@@ -3688,18 +3688,18 @@ def main(df, ml_model=None, label_encoders=None, feature_names=None):
     print("\nReport generation complete!")
 
 
-if __name__ == "__main__":
-    ml_model = model_a
-    features_with_log = [
-    'bedrooms',
-    'log_builtup_area',
-    'bathrooms',
-    'furnishing',
-    'locality',
-    'society',
-    'floor',
-    'total_floors',
-    'building_age'
-]
+# if __name__ == "__main__":
+#     ml_model = model_a
+#     features_with_log = [
+#     'bedrooms',
+#     'log_builtup_area',
+#     'bathrooms',
+#     'furnishing',
+#     'locality',
+#     'society',
+#     'floor',
+#     'total_floors',
+#     'building_age'
+# ]
 
-    main(df1, ml_model, label_encoders=label_encoders, feature_names=features_with_log)
+#     main(df1, ml_model, label_encoders=label_encoders, feature_names=features_with_log)
