@@ -1,12 +1,12 @@
 import os
 from datetime import datetime
 from reportlab.lib import colors
-# from reportlab.lib.pagesizes import A4
-# from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
-# from reportlab.platypus import PageBreak, KeepTogether, ListFlowable, ListItem
-# from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-# from reportlab.lib.units import inch, cm
-# from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT, TA_JUSTIFY
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
+from reportlab.platypus import PageBreak, KeepTogether, ListFlowable, ListItem
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch, cm
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT, TA_JUSTIFY
 import matplotlib.pyplot as plt
 import io
 import numpy as np
