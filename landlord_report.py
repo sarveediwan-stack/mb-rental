@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-# from reportlab.lib import colors
+from reportlab.lib import colors
 # from reportlab.lib.pagesizes import A4
 # from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
 # from reportlab.platypus import PageBreak, KeepTogether, ListFlowable, ListItem
