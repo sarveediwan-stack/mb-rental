@@ -959,11 +959,11 @@ if df is not None and len(df) > 0:
         # Landlord Report Tab
         with tabs[3]:
             st.header("🏠 Landlord Report")
-            st.markdown("""
-            Generate a comprehensive market analysis report for your rental property. 
-            This report includes rent estimates, market position analysis, comparable properties, 
-            and actionable recommendations.
-            """)
+            # st.markdown("""
+            # Generate a comprehensive market analysis report for your rental property. 
+            # This report includes rent estimates, market position analysis, comparable properties, 
+            # and actionable recommendations.
+            # """)
             
             # Input columns layout
             col1, col2, col3 = st.columns(3)
