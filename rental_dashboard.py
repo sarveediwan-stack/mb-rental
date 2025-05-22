@@ -684,9 +684,7 @@ if df is not None and len(df) > 0:
         else:
             st.caption("📋 Reports: Ready")
 
-    if models is not None:
-        st.success("✅ Models trained successfully!")
-    else:
+    if models is None:
         st.error("❌ Model training failed! Some features may not work properly.")
 
     # Create tabs for different functionality - MOVED OUTSIDE MODEL CONDITION
