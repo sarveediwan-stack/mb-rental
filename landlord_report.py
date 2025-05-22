@@ -1152,6 +1152,7 @@ def create_landlord_pdf_report(report_data, label_encoders = None, output_dir="r
         builtins.print = lambda *args, **kwargs: None
     
     try:
+        report_generator = LandlordReportGenerator(output_dir=output_dir, label_encoders=label_encoders)
         pdf_path = report_generator.generate_report(report_data)
     finally:
         # Restore original print function
