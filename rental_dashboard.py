@@ -40,9 +40,9 @@ st.set_page_config(
 
 # App title and description
 st.title("🏠 Magicbricks Rental Analysis Dashboard")
-st.markdown("""
-This app analyzes rental property data to predict rents and find comparable properties.
-""")
+# st.markdown("""
+# This app analyzes rental property data to predict rents and find comparable properties.
+# """)
 
 # # Sidebar for file upload
 # with st.sidebar:
@@ -657,7 +657,12 @@ def generate_shap_waterfall(model, features, input_data, feature_names, label_en
 df, label_encoders = load_and_process_data()
 
 if df is not None and len(df) > 0:
-    st.success(f"✅ Data loaded successfully: {len(df)} properties")
+    # st.success(f"✅ Data loaded successfully: {len(df)} properties")
+    # Compact status bar instead of big success boxes
+    status_col1, status_col2, status_col3 = st.columns([3, 3, 4])
+    with status_col1:
+        st.caption(f"📊 Data: {len(df)} properties")
+
     # Ensure reports directory exists
     os.makedirs("reports", exist_ok=True)    
     # Check if landlord report functionality is available
@@ -667,7 +672,18 @@ if df is not None and len(df) > 0:
     # Train the models
     with st.spinner("Training models..."):
         models = train_models(df)
-    
+    with status_col2:
+        if models is not None:
+            st.caption("🤖 Models: Ready")
+        else:
+            st.caption("🤖 Models: Failed")
+    with status_col3:
+        # Check if landlord report functionality is available
+        if not LANDLORD_REPORT_AVAILABLE:
+            st.caption("📋 Reports: Unavailable")
+        else:
+            st.caption("📋 Reports: Ready")
+
     if models is not None:
         st.success("✅ Models trained successfully!")
     else:
