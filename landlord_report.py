@@ -718,22 +718,25 @@ class LandlordReportGenerator:
         elements.append(premium_table)
         elements.append(Spacer(1, 0.1*inch))
 
+    # Replace the _add_comparables_analysis method in your landlord_report.py with this fixed version:
+
     def _add_comparables_analysis(self, elements, report_data):
-        # """Add the comparables analysis section"""
+        """Add the comparables analysis section with safe table handling for few/no comparables"""
         # Section header
         elements.append(Paragraph("Comparable Properties Analysis", self.styles['ReportSubtitle']))
-
+    
         # Get comparables data
         comparables = report_data.get('comparables', {})
         tiered_analysis = comparables.get('tiered_analysis', {})
-
+    
         elements.append(Paragraph("The following analysis shows how your property compares to different segments of the market:", self.styles['ReportBody']))
-
+    
         # Create comparable properties table
         comp_data = []
         comp_data.append(["Comparable Group", "Properties", "Avg. Rent", "Rent Range", "Your Position"])
-
-        # Add data for each tier with sufficient data
+    
+        # Add data for each tier with sufficient data - ONLY ADD ROWS THAT HAVE DATA
+        rows_added = 0
         for tier_name, tier_data in tiered_analysis.items():
             if tier_data.get('available', False) and tier_data.get('count', 0) >= 3:
                 tier_display_name = tier_name.replace('_', ' ').title()
@@ -741,15 +744,14 @@ class LandlordReportGenerator:
                 avg_rent = tier_data.get('avg_rent', 0)
                 min_rent = tier_data.get('min_rent', 0)
                 max_rent = tier_data.get('max_rent', 0)
-                percentile = tier_data.get('percentile', 50)
                 premium = tier_data.get('premium_discount', 0)
-
+    
                 # Format position text
                 if premium > 0:
                     position_text = f"{abs(premium):.1f}% above avg."
                 else:
                     position_text = f"{abs(premium):.1f}% below avg."
-
+    
                 # Add row to table
                 comp_data.append([
                     tier_display_name,
@@ -758,11 +760,28 @@ class LandlordReportGenerator:
                     f"Rs. {min_rent:,.0f} - Rs. {max_rent:,.0f}",
                     position_text
                 ])
-
-        # Create the comparables table       
+                rows_added += 1
+    
+        # CHECK IF WE HAVE ENOUGH DATA FOR A TABLE
+        if rows_added == 0:
+            # No comparable data available
+            elements.append(Paragraph("Insufficient comparable properties found for detailed analysis. This may be due to:", self.styles['ReportBody']))
+            elements.append(Paragraph("• Limited properties in the same society", self.styles['ReportBody']))
+            elements.append(Paragraph("• Few properties with the same configuration in the area", self.styles['ReportBody']))
+            elements.append(Paragraph("• Unique property characteristics", self.styles['ReportBody']))
+            elements.append(Spacer(1, 0.2*inch))
+            return
+    
+        # Create the comparables table ONLY if we have data
         comp_table = Table(comp_data, colWidths=[2*inch, 0.8*inch, 1*inch, 1.7*inch, 1.4*inch])
-        comp_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4A23AD')),  # Medium blue for header row
+    
+        # Calculate actual table dimensions
+        actual_rows = len(comp_data)  # This includes header + data rows
+        actual_cols = 5
+    
+        # SAFE STYLING - only apply styles to rows that actually exist
+        style_commands = [
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4A23AD')),  # Header row
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
             ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),  # Right-align data cells
@@ -771,37 +790,40 @@ class LandlordReportGenerator:
             ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
             ('TOPPADDING', (0, 0), (-1, -1), 6),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
-            # Alternating row colors for readability
-            ('BACKGROUND', (0, 2), (-1, 2), colors.HexColor('#EAE6F5')),
-            ('BACKGROUND', (0, 4), (-1, 4), colors.HexColor('#EAE6F5')),
-        ]))
-
+        ]
+    
+        # ONLY add alternating row colors if we have enough rows
+        if actual_rows >= 3:  # Header + at least 2 data rows
+            style_commands.append(('BACKGROUND', (0, 2), (-1, 2), colors.HexColor('#EAE6F5')))
+        if actual_rows >= 5:  # Header + at least 4 data rows
+            style_commands.append(('BACKGROUND', (0, 4), (-1, 4), colors.HexColor('#EAE6F5')))
+    
+        comp_table.setStyle(TableStyle(style_commands))
         elements.append(comp_table)
         elements.append(Spacer(1, 0.2*inch))
-
+    
         # Add a similar table for Rent per Square Foot
         elements.append(Paragraph("Comparison by Rent per Square Foot", self.styles['ReportHeading3']))
-
+    
         psf_data = []
         psf_data.append(["Comparable Group", "Properties", "Avg. Rs./sq-ft", "Rs./sq-ft Range", "Your Position"])
-
+    
         # Get property's rent per sqft for comparison
         property_details = report_data.get('property_details', {})
         pricing = property_details.get('pricing', {})
         rent_per_sqft = pricing.get('rent_per_sqft', 0)
-
-        # Add data for each tier with sufficient data
+    
+        # Add data for each tier with sufficient data - AGAIN, ONLY ADD ROWS WITH DATA
+        psf_rows_added = 0
         for tier_name, tier_data in tiered_analysis.items():
             if tier_data.get('available', False) and tier_data.get('count', 0) >= 3:
                 tier_display_name = tier_name.replace('_', ' ').title()
                 count = tier_data.get('count', 0)
-
+    
                 # Get rent per sqft metrics
                 avg_rent_psf = tier_data.get('avg_rent_psf', 0)
-
-                # Get premium/discount based on rent per sqft
                 premium_psf = tier_data.get('premium_discount_psf', 0)
-
+    
                 # Calculate range if available in data or estimate
                 if 'min_rent_psf' in tier_data and 'max_rent_psf' in tier_data:
                     min_rent_psf = tier_data.get('min_rent_psf', 0)
@@ -811,7 +833,7 @@ class LandlordReportGenerator:
                     min_rent = tier_data.get('min_rent', 0)
                     max_rent = tier_data.get('max_rent', 0)
                     avg_area = property_details.get('physical', {}).get('builtup_area', 1000)
-
+                    
                     # Avoid division by zero
                     if avg_area > 0:
                         min_rent_psf = min_rent / avg_area
@@ -819,13 +841,13 @@ class LandlordReportGenerator:
                     else:
                         min_rent_psf = 0
                         max_rent_psf = 0
-
+    
                 # Format position text
                 if premium_psf > 0:
                     position_text = f"{abs(premium_psf):.1f}% above avg."
                 else:
                     position_text = f"{abs(premium_psf):.1f}% below avg."
-
+    
                 # Add row to table
                 psf_data.append([
                     tier_display_name,
@@ -834,11 +856,24 @@ class LandlordReportGenerator:
                     f"Rs. {min_rent_psf:.2f} - Rs. {max_rent_psf:.2f}",
                     position_text
                 ])
-
+                psf_rows_added += 1
+    
+        # CHECK AGAIN FOR PSF TABLE
+        if psf_rows_added == 0:
+            elements.append(Paragraph("Rent per square foot comparison not available due to insufficient comparable data.", self.styles['ReportBody']))
+            elements.append(Spacer(1, 0.2*inch))
+            return
+    
         # Create the rent per sqft table
         psf_table = Table(psf_data, colWidths=[2*inch, 0.8*inch, 1*inch, 1.8*inch, 1.45*inch])
-        psf_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4A23AD')),  # Medium blue for header row
+    
+        # Calculate actual PSF table dimensions
+        actual_psf_rows = len(psf_data)
+        actual_psf_cols = 5
+    
+        # SAFE STYLING for PSF table
+        psf_style_commands = [
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4A23AD')),  # Header row
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
             ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),  # Right-align data cells
@@ -847,71 +882,268 @@ class LandlordReportGenerator:
             ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
             ('TOPPADDING', (0, 0), (-1, -1), 6),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
-            # Alternating row colors for readability
-            ('BACKGROUND', (0, 2), (-1, 2), colors.HexColor('#EAE6F5')),
-            ('BACKGROUND', (0, 4), (-1, 4), colors.HexColor('#EAE6F5')),
-
-        ]))
-
+        ]
+    
+        # ONLY add alternating row colors if we have enough rows
+        if actual_psf_rows >= 3:  # Header + at least 2 data rows
+            psf_style_commands.append(('BACKGROUND', (0, 2), (-1, 2), colors.HexColor('#EAE6F5')))
+        if actual_psf_rows >= 5:  # Header + at least 4 data rows
+            psf_style_commands.append(('BACKGROUND', (0, 4), (-1, 4), colors.HexColor('#EAE6F5')))
+    
+        psf_table.setStyle(TableStyle(psf_style_commands))
         elements.append(psf_table)
         elements.append(Spacer(1, 0.2*inch))
+    
+        # Add insight about comparables - ONLY if we have data
+        if psf_rows_added > 0:
+            property_rent = pricing.get('total_rent', 0)
+    
+            # Get most relevant comparable group stats
+            primary_group = report_data.get('market_position', {}).get('primary_comparison_group', 'same_locality_same_bhk')
+            primary_tier = None
+    
+            for tier_name, tier_data in tiered_analysis.items():
+                if tier_name == primary_group and tier_data.get('available', False):
+                    primary_tier = tier_data
+                    break
+    
+            if primary_tier:
+                avg_rent = primary_tier.get('avg_rent', 0)
+                premium = primary_tier.get('premium_discount', 0)
+                avg_rent_psf = primary_tier.get('avg_rent_psf', 0)
+                premium_psf = primary_tier.get('premium_discount_psf', 0)
+    
+                if premium > 10:
+                    insight_text = f"Your property's rent of Rs. {property_rent:,} is significantly higher than the average " \
+                                  f"of Rs. {avg_rent:,.0f} for comparable properties in {primary_group.replace('_', ' ')}. " \
+                                  f"This may reflect superior features or positioning."
+                elif premium > 0:
+                    insight_text = f"Your property is priced moderately above comparable properties " \
+                                  f"in {primary_group.replace('_', ' ')}, commanding a {premium:.1f}% premium."
+                elif premium > -10:
+                    insight_text = f"Your property is priced slightly below comparable properties " \
+                                  f"in {primary_group.replace('_', ' ')}, which may help with faster occupancy."
+                else:
+                    insight_text = f"Your property is priced significantly below comparable properties " \
+                                  f"in {primary_group.replace('_', ' ')}. There may be opportunity to " \
+                                  f"increase rent in the future."
+    
+                elements.append(Paragraph(insight_text, self.styles['ReportBody']))
+    
+                # Add insight based on rent per sqft
+                elements.append(Spacer(1, 0.05*inch))
+    
+                if premium_psf > 10:
+                    psf_insight = f"On a per square foot basis (Rs. {rent_per_sqft:.2f}/sqft), your property commands a significant " \
+                                 f"premium of {premium_psf:.1f}% over the average (Rs. {avg_rent_psf:.2f}/sqft) in this segment. " \
+                                 f"This suggests excellent value relative to its size."
+                elif premium_psf > 0:
+                    psf_insight = f"Your property's per square foot rate (Rs.{rent_per_sqft:.2f}/sqft) is moderately higher than " \
+                                 f"the average (Rs.{avg_rent_psf:.2f}/sqft) for comparable properties, indicating good pricing relative to size."
+                elif premium_psf > -10:
+                    psf_insight = f"Your property's per square foot rate (Rs.{rent_per_sqft:.2f}/sqft) is slightly below " \
+                                 f"the average (Rs.{avg_rent_psf:.2f}/sqft) for comparable properties, suggesting fair value for its size."
+                else:
+                    psf_insight = f"Your property's per square foot rate (Rs.{rent_per_sqft:.2f}/sqft) is significantly lower than " \
+                                 f"the average (Rs.{avg_rent_psf:.2f}/sqft) for comparable properties. This could indicate " \
+                                 f"potential for a rent increase or reflect specific property characteristics."
+    
+                elements.append(Paragraph(psf_insight, self.styles['ReportBody']))
+    
+    # def _add_comparables_analysis(self, elements, report_data):
+    #     # """Add the comparables analysis section"""
+    #     # Section header
+    #     elements.append(Paragraph("Comparable Properties Analysis", self.styles['ReportSubtitle']))
+
+    #     # Get comparables data
+    #     comparables = report_data.get('comparables', {})
+    #     tiered_analysis = comparables.get('tiered_analysis', {})
+
+    #     elements.append(Paragraph("The following analysis shows how your property compares to different segments of the market:", self.styles['ReportBody']))
+
+    #     # Create comparable properties table
+    #     comp_data = []
+    #     comp_data.append(["Comparable Group", "Properties", "Avg. Rent", "Rent Range", "Your Position"])
+
+    #     # Add data for each tier with sufficient data
+    #     for tier_name, tier_data in tiered_analysis.items():
+    #         if tier_data.get('available', False) and tier_data.get('count', 0) >= 3:
+    #             tier_display_name = tier_name.replace('_', ' ').title()
+    #             count = tier_data.get('count', 0)
+    #             avg_rent = tier_data.get('avg_rent', 0)
+    #             min_rent = tier_data.get('min_rent', 0)
+    #             max_rent = tier_data.get('max_rent', 0)
+    #             percentile = tier_data.get('percentile', 50)
+    #             premium = tier_data.get('premium_discount', 0)
+
+    #             # Format position text
+    #             if premium > 0:
+    #                 position_text = f"{abs(premium):.1f}% above avg."
+    #             else:
+    #                 position_text = f"{abs(premium):.1f}% below avg."
+
+    #             # Add row to table
+    #             comp_data.append([
+    #                 tier_display_name,
+    #                 str(count),
+    #                 f"Rs. {avg_rent:,.0f}",
+    #                 f"Rs. {min_rent:,.0f} - Rs. {max_rent:,.0f}",
+    #                 position_text
+    #             ])
+
+    #     # Create the comparables table       
+    #     comp_table = Table(comp_data, colWidths=[2*inch, 0.8*inch, 1*inch, 1.7*inch, 1.4*inch])
+    #     comp_table.setStyle(TableStyle([
+    #         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4A23AD')),  # Medium blue for header row
+    #         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+    #         ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+    #         ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),  # Right-align data cells
+    #         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica'),
+    #         ('FONTNAME', (0, 1), (0, -1), 'Helvetica'),
+    #         ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    #         ('TOPPADDING', (0, 0), (-1, -1), 6),
+    #         ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
+    #         # Alternating row colors for readability
+    #         ('BACKGROUND', (0, 2), (-1, 2), colors.HexColor('#EAE6F5')),
+    #         ('BACKGROUND', (0, 4), (-1, 4), colors.HexColor('#EAE6F5')),
+    #     ]))
+
+    #     elements.append(comp_table)
+    #     elements.append(Spacer(1, 0.2*inch))
+
+    #     # Add a similar table for Rent per Square Foot
+    #     elements.append(Paragraph("Comparison by Rent per Square Foot", self.styles['ReportHeading3']))
+
+    #     psf_data = []
+    #     psf_data.append(["Comparable Group", "Properties", "Avg. Rs./sq-ft", "Rs./sq-ft Range", "Your Position"])
+
+    #     # Get property's rent per sqft for comparison
+    #     property_details = report_data.get('property_details', {})
+    #     pricing = property_details.get('pricing', {})
+    #     rent_per_sqft = pricing.get('rent_per_sqft', 0)
+
+    #     # Add data for each tier with sufficient data
+    #     for tier_name, tier_data in tiered_analysis.items():
+    #         if tier_data.get('available', False) and tier_data.get('count', 0) >= 3:
+    #             tier_display_name = tier_name.replace('_', ' ').title()
+    #             count = tier_data.get('count', 0)
+
+    #             # Get rent per sqft metrics
+    #             avg_rent_psf = tier_data.get('avg_rent_psf', 0)
+
+    #             # Get premium/discount based on rent per sqft
+    #             premium_psf = tier_data.get('premium_discount_psf', 0)
+
+    #             # Calculate range if available in data or estimate
+    #             if 'min_rent_psf' in tier_data and 'max_rent_psf' in tier_data:
+    #                 min_rent_psf = tier_data.get('min_rent_psf', 0)
+    #                 max_rent_psf = tier_data.get('max_rent_psf', 0)
+    #             else:
+    #                 # Estimate range based on total rent range and average area
+    #                 min_rent = tier_data.get('min_rent', 0)
+    #                 max_rent = tier_data.get('max_rent', 0)
+    #                 avg_area = property_details.get('physical', {}).get('builtup_area', 1000)
+
+    #                 # Avoid division by zero
+    #                 if avg_area > 0:
+    #                     min_rent_psf = min_rent / avg_area
+    #                     max_rent_psf = max_rent / avg_area
+    #                 else:
+    #                     min_rent_psf = 0
+    #                     max_rent_psf = 0
+
+    #             # Format position text
+    #             if premium_psf > 0:
+    #                 position_text = f"{abs(premium_psf):.1f}% above avg."
+    #             else:
+    #                 position_text = f"{abs(premium_psf):.1f}% below avg."
+
+    #             # Add row to table
+    #             psf_data.append([
+    #                 tier_display_name,
+    #                 str(count),
+    #                 f"Rs. {avg_rent_psf:.2f}",
+    #                 f"Rs. {min_rent_psf:.2f} - Rs. {max_rent_psf:.2f}",
+    #                 position_text
+    #             ])
+
+    #     # Create the rent per sqft table
+    #     psf_table = Table(psf_data, colWidths=[2*inch, 0.8*inch, 1*inch, 1.8*inch, 1.45*inch])
+    #     psf_table.setStyle(TableStyle([
+    #         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4A23AD')),  # Medium blue for header row
+    #         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+    #         ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+    #         ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),  # Right-align data cells
+    #         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica'),
+    #         ('FONTNAME', (0, 1), (0, -1), 'Helvetica'),
+    #         ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    #         ('TOPPADDING', (0, 0), (-1, -1), 6),
+    #         ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
+    #         # Alternating row colors for readability
+    #         ('BACKGROUND', (0, 2), (-1, 2), colors.HexColor('#EAE6F5')),
+    #         ('BACKGROUND', (0, 4), (-1, 4), colors.HexColor('#EAE6F5')),
+
+    #     ]))
+
+    #     elements.append(psf_table)
+    #     elements.append(Spacer(1, 0.2*inch))
 
 
-        # Add insight about comparables
-        property_details = report_data.get('property_details', {})
-        pricing = property_details.get('pricing', {})
-        rent = pricing.get('total_rent', 0)
+    #     # Add insight about comparables
+    #     property_details = report_data.get('property_details', {})
+    #     pricing = property_details.get('pricing', {})
+    #     rent = pricing.get('total_rent', 0)
 
-        # Get most relevant comparable group stats
-        primary_group = report_data.get('market_position', {}).get('primary_comparison_group', 'same_locality_same_bhk')
-        primary_tier = None
-        for tier_name, tier_data in tiered_analysis.items():
-            if tier_name == primary_group and tier_data.get('available', False):
-                primary_tier = tier_data
-                break
+    #     # Get most relevant comparable group stats
+    #     primary_group = report_data.get('market_position', {}).get('primary_comparison_group', 'same_locality_same_bhk')
+    #     primary_tier = None
+    #     for tier_name, tier_data in tiered_analysis.items():
+    #         if tier_name == primary_group and tier_data.get('available', False):
+    #             primary_tier = tier_data
+    #             break
 
-        if primary_tier:
-            avg_rent = primary_tier.get('avg_rent', 0)
-            premium = primary_tier.get('premium_discount', 0)
-            # Get the per-sqft metrics from the SAME primary_tier
-            avg_rent_psf = primary_tier.get('avg_rent_psf', 0)
-            premium_psf = primary_tier.get('premium_discount_psf', 0)
+    #     if primary_tier:
+    #         avg_rent = primary_tier.get('avg_rent', 0)
+    #         premium = primary_tier.get('premium_discount', 0)
+    #         # Get the per-sqft metrics from the SAME primary_tier
+    #         avg_rent_psf = primary_tier.get('avg_rent_psf', 0)
+    #         premium_psf = primary_tier.get('premium_discount_psf', 0)
 
-            if premium > 10:
-                insight_text = f"Your property's rent of Rs. {rent:,} is significantly higher than the average " \
-                               f"of Rs. {avg_rent:,.0f} for comparable properties in {primary_group.replace('_', ' ')}. " \
-                               f"This may reflect superior features or positioning."
-            elif premium > 0:
-                insight_text = f"Your property is priced moderately above comparable properties " \
-                               f"in {primary_group.replace('_', ' ')}, commanding a {premium:.1f}% premium."
-            elif premium > -10:
-                insight_text = f"Your property is priced slightly below comparable properties " \
-                               f"in {primary_group.replace('_', ' ')}, which may help with faster occupancy."
-            else:
-                insight_text = f"Your property is priced significantly below comparable properties " \
-                               f"in {primary_group.replace('_', ' ')}. There may be opportunity to " \
-                               f"increase rent in the future."
+    #         if premium > 10:
+    #             insight_text = f"Your property's rent of Rs. {rent:,} is significantly higher than the average " \
+    #                            f"of Rs. {avg_rent:,.0f} for comparable properties in {primary_group.replace('_', ' ')}. " \
+    #                            f"This may reflect superior features or positioning."
+    #         elif premium > 0:
+    #             insight_text = f"Your property is priced moderately above comparable properties " \
+    #                            f"in {primary_group.replace('_', ' ')}, commanding a {premium:.1f}% premium."
+    #         elif premium > -10:
+    #             insight_text = f"Your property is priced slightly below comparable properties " \
+    #                            f"in {primary_group.replace('_', ' ')}, which may help with faster occupancy."
+    #         else:
+    #             insight_text = f"Your property is priced significantly below comparable properties " \
+    #                            f"in {primary_group.replace('_', ' ')}. There may be opportunity to " \
+    #                            f"increase rent in the future."
 
-            elements.append(Paragraph(insight_text, self.styles['ReportBody']))
+    #         elements.append(Paragraph(insight_text, self.styles['ReportBody']))
 
-            # Add insight based on rent per sqft
-            elements.append(Spacer(1, 0.05*inch))
-            if premium_psf > 10:
-                psf_insight = f"On a per square foot basis (Rs. {rent_per_sqft:.2f}/sqft), your property commands a significant " \
-                            f"premium of {premium_psf:.1f}% over the average (Rs. {avg_rent_psf:.2f}/sqft) in this segment. " \
-                            f"This suggests excellent value relative to its size."
-            elif premium_psf > 0:
-                psf_insight = f"Your property's per square foot rate (Rs.{rent_per_sqft:.2f}/sqft) is moderately higher than " \
-                            f"the average (Rs.{avg_rent_psf:.2f}/sqft) for comparable properties, indicating good pricing relative to size."
-            elif premium_psf > -10:
-                psf_insight = f"Your property's per square foot rate (Rs.{rent_per_sqft:.2f}/sqft) is slightly below " \
-                            f"the average (Rs.{avg_rent_psf:.2f}/sqft) for comparable properties, suggesting fair value for its size."
-            else:
-                psf_insight = f"Your property's per square foot rate (Rs.{rent_per_sqft:.2f}/sqft) is significantly lower than " \
-                            f"the average (Rs.{avg_rent_psf:.2f}/sqft) for comparable properties. This could indicate " \
-                            f"potential for a rent increase or reflect specific property characteristics."
+    #         # Add insight based on rent per sqft
+    #         elements.append(Spacer(1, 0.05*inch))
+    #         if premium_psf > 10:
+    #             psf_insight = f"On a per square foot basis (Rs. {rent_per_sqft:.2f}/sqft), your property commands a significant " \
+    #                         f"premium of {premium_psf:.1f}% over the average (Rs. {avg_rent_psf:.2f}/sqft) in this segment. " \
+    #                         f"This suggests excellent value relative to its size."
+    #         elif premium_psf > 0:
+    #             psf_insight = f"Your property's per square foot rate (Rs.{rent_per_sqft:.2f}/sqft) is moderately higher than " \
+    #                         f"the average (Rs.{avg_rent_psf:.2f}/sqft) for comparable properties, indicating good pricing relative to size."
+    #         elif premium_psf > -10:
+    #             psf_insight = f"Your property's per square foot rate (Rs.{rent_per_sqft:.2f}/sqft) is slightly below " \
+    #                         f"the average (Rs.{avg_rent_psf:.2f}/sqft) for comparable properties, suggesting fair value for its size."
+    #         else:
+    #             psf_insight = f"Your property's per square foot rate (Rs.{rent_per_sqft:.2f}/sqft) is significantly lower than " \
+    #                         f"the average (Rs.{avg_rent_psf:.2f}/sqft) for comparable properties. This could indicate " \
+    #                         f"potential for a rent increase or reflect specific property characteristics."
 
-            elements.append(Paragraph(psf_insight, self.styles['ReportBody']))
+            # elements.append(Paragraph(psf_insight, self.styles['ReportBody']))
 
 
         # elements.append(Spacer(1, 0.05*inch))
