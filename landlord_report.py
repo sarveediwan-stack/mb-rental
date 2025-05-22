@@ -10,6 +10,13 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT, TA_JUSTIFY
 import matplotlib.pyplot as plt
 import io
 import numpy as np
+import warnings
+warnings.filterwarnings('ignore')
+
+# Modify the plotting backend for Streamlit compatibility
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend for Streamlit
+
 
 class LandlordReportGenerator:
     #Class for generating PDF reports for landlords based on rental property analysis
@@ -1123,7 +1130,7 @@ class LandlordReportGenerator:
 
 
 # Example integration function - Call this from your main code
-def create_landlord_pdf_report(report_data, label_encoders = None, output_dir="reports"):
+def create_landlord_pdf_report(report_data, label_encoders = None, output_dir="reports", verbose=False):
     # """
     # Create a PDF report from landlord report data
 
@@ -1134,8 +1141,24 @@ def create_landlord_pdf_report(report_data, label_encoders = None, output_dir="r
     # Returns:
     # str: Path to generated PDF file
     # """
-    report_generator = LandlordReportGenerator(output_dir=output_dir, label_encoders = label_encoders)
-    return report_generator.generate_report(report_data)
+    
+    
+    # Store original print function
+    import builtins
+    original_print = builtins.print
+    
+    if not verbose:
+        # Suppress print statements during PDF generation
+        builtins.print = lambda *args, **kwargs: None
+    
+    try:
+        pdf_path = report_generator.generate_report(report_data)
+    finally:
+        # Restore original print function
+        builtins.print = original_print
+
+    
+    return pdf_path
 
 
 import pandas as pd
@@ -1150,6 +1173,26 @@ import shap
 plt.style.use('seaborn-v0_8')
 sns.set_palette("Set2")
 plt.rcParams.update({'font.size': 12, 'figure.figsize': (12, 8)})
+
+def generate_report_for_streamlit(property_data, full_dataset, ml_model=None, 
+                                feature_names=None, label_encoders=None, 
+                                rent_estimates=None):
+    # """
+    # Streamlit-friendly wrapper for generate_landlord_report
+    # """
+    try:
+        return generate_landlord_report(
+            property_data=property_data,
+            full_dataset=full_dataset,
+            ml_model=ml_model,
+            feature_names=feature_names,
+            label_encoders=label_encoders,
+            generate_plots=False,  # Generate plots lazily for better performance
+            rent_estimates=rent_estimates
+        )
+    except Exception as e:
+        print(f"Error in generate_report_for_streamlit: {e}")
+        raise e
 
 # Sample data preprocessing function
 def prepare_data(df):
@@ -3250,7 +3293,8 @@ def display_landlord_report_visuals(report, max_charts=2, selected_charts=None):
         print(f"\nChart {i}: {title}")
 
         # Show the chart
-        plt.show()
+        # plt.show()
+        return plt.gcf()
 
         # Add a brief explanation based on chart type
         if name == 'position_chart':
