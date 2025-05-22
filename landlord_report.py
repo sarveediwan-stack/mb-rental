@@ -1309,7 +1309,7 @@ class LandlordReportGenerator:
     def _add_summary(self, elements, report_data):
         """Add the summary and recommendations section"""
         # Section header
-        elements.append(PageBreak())
+        # elements.append(PageBreak())
         elements.append(Paragraph("Summary & Recommendations", self.styles['ReportSubtitle']))
 
         # Get data for summary
