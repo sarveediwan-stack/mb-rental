@@ -39,7 +39,7 @@ st.set_page_config(
 )
 
 # App title and description
-st.title("🏠 Magicbricks Rental Analysis Dashboard")
+st.markdown("🏠 Magicbricks Rental Analysis Dashboard")
 # st.markdown("""
 # This app analyzes rental property data to predict rents and find comparable properties.
 # """)
@@ -1001,7 +1001,7 @@ if df is not None and len(df) > 0:
     # Landlord Report Tab - Your existing implementation
     with tabs[3]:
         if not LANDLORD_REPORT_AVAILABLE:
-            st.header("🏠 Landlord Report Generator")
+            st.header("Landlord Report Generator")
             st.error("⚠️ Landlord Report functionality is currently unavailable.")
             st.info("Please ensure the `landlord_report.py` file is in the same directory as this dashboard.")
             
@@ -1018,12 +1018,12 @@ if df is not None and len(df) > 0:
             """)
         else:            
             # Rest of your landlord report implementation...
-            st.header("🏠 Landlord Report Generator")
-            st.markdown("""
-            Generate a comprehensive market analysis report for your rental property.
-            This report includes rent estimates, market position analysis, comparable properties,
-            and actionable recommendations as a downloadable PDF.
-            """)
+            st.header("Landlord Report Generator")
+            # st.markdown("""
+            # Generate a comprehensive market analysis report for your rental property.
+            # This report includes rent estimates, market position analysis, comparable properties,
+            # and actionable recommendations as a downloadable PDF.
+            # """)
         
             # Create input form
             with st.form(key="landlord_report_form"):
