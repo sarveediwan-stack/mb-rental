@@ -1002,15 +1002,7 @@ if df is not None and len(df) > 0:
             2. Install required packages: `pip install reportlab matplotlib`
             3. Restart the Streamlit application
             """)
-        else:
-            # Your existing landlord report implementation goes here
-            st.header("🏠 Landlord Report Generator")
-            st.markdown("""
-            Generate a comprehensive market analysis report for your rental property.
-            This report includes rent estimates, market position analysis, comparable properties,
-            and actionable recommendations as a downloadable PDF.
-            """)
-            
+        else:            
             # Rest of your landlord report implementation...
             st.header("🏠 Landlord Report Generator")
             st.markdown("""
