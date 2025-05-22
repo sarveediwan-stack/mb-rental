@@ -485,6 +485,7 @@ class LandlordReportGenerator:
         percentile_data.append(["Comparison Group", "Rent Percentile", "Rent/sq-ft Percentile"])
 
         # Add percentiles for each comparison group
+        actual_data_rows = 0
         for group_name, values in percentile_ranks.items():
             if group_name != 'bedroom_type':  # Skip this for cleaner report
                 group_display = group_name.replace('_', ' ').title()
@@ -497,40 +498,50 @@ class LandlordReportGenerator:
                     f"{rent_percentile:.1f}th",
                     f"{rent_sqft_percentile:.1f}th"
                 ])
+                actual_data_rows+=1
 
-        # Create percentile table
-        percentile_table = Table(percentile_data, colWidths=[3*inch, 1.5*inch, 1.5*inch])
-        percentile_table.setStyle(TableStyle([
-            # Header row styling
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4A23AD')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica'),
+        if actual_data_rows >0:
+            # Create percentile table
+            percentile_table = Table(percentile_data, colWidths=[3*inch, 1.5*inch, 1.5*inch])
+            total_rows = len(percentile_data)  # includes header
+            style_commands = [
+                # Header row styling
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4A23AD')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+                ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica'),
+                # Data rows styling
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),  # Make first column bold
+                # Cell padding for better spacing
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                # Borders - more subtle
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
+            ]
+    
+            # ONLY add highlighting if we have enough rows (at least 4 total = header + 3 data)
+            if total_rows >= 4:
+                style_commands.extend([
+                    ('TEXTCOLOR', (1, 3), (2, 3), colors.HexColor('#FF5A6F')),
+                    ('FONTNAME', (1, 3), (2, 3), 'Helvetica-Bold'),
+                ])
+    
+            # ONLY add alternating row colors if we have enough rows
+            if total_rows >= 3:  # header + 2 data rows
+                style_commands.append(('BACKGROUND', (0, 2), (-1, 2), colors.HexColor('#EAE6F5')))
+            if total_rows >= 5:  # header + 4 data rows
+                style_commands.append(('BACKGROUND', (0, 4), (-1, 4), colors.HexColor('#EAE6F5')))
+            if total_rows >= 7:  # header + 6 data rows
+                style_commands.append(('BACKGROUND', (0, 6), (-1, 6), colors.HexColor('#EAE6F5')))
+    
+            percentile_table.setStyle(TableStyle(style_commands))
+            elements.append(percentile_table)
 
-            # Data rows styling
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),  # Make first column bold
+        else:
+            elements.append(Paragraph("Percentile ranking data not available.", self.styles['ReportBody']))
 
-            # Highlight the best percentiles (Overall Market)
-            ('TEXTCOLOR', (1, 3), (2, 3), colors.HexColor('#FF5A6F')),
-            ('FONTNAME', (1, 3), (2, 3), 'Helvetica-Bold'),
-
-            # Cell padding for better spacing
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
-
-            # Borders - more subtle
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
-
-            # Alternating row colors for readability
-            ('BACKGROUND', (0, 2), (-1, 2), colors.HexColor('#EAE6F5')),
-            ('BACKGROUND', (0, 4), (-1, 4), colors.HexColor('#EAE6F5')),
-            ('BACKGROUND', (0, 6), (-1, 6), colors.HexColor('#EAE6F5')),
-        ]))
-
-
-        elements.append(percentile_table)
         elements.append(Spacer(1, 0.2*inch))
 
         progress_title = Paragraph("Your Market Position", self.styles['ReportBodyColor'])
@@ -671,6 +682,7 @@ class LandlordReportGenerator:
             return Paragraph(value_text, style)
 
         # Add rows with formatted premium values using Paragraph objects
+        premium_data_rows = 0
         for label, value in [
             ("Same Society & BHK", society_premium),
             ("Same Locality & BHK", locality_premium),
@@ -681,44 +693,50 @@ class LandlordReportGenerator:
             label_para = Paragraph(label, self.styles['ReportBody'])
             value_para = create_premium_paragraph(value)
             premium_data.append([label_para, value_para])
+            premium_data_rows += 1
 
-        # Create premium/discount table
-        primary_color = colors.HexColor('#4A23AD')  # Purple
-        accent_color = colors.HexColor('#FF5A6F')   # Coral
-        premium_color = colors.HexColor('#2E8B57')  # Green for premium
-        discount_color = colors.HexColor('#D32F2F')  # Red for discount
-        header_color = colors.HexColor('#455A64')   # Dark slate for header
-        light_purple = colors.HexColor('#EAE6F5')   # Light purple for alternating rows
+        if premium_data_rows > 0:
 
-        premium_table = Table(premium_data, colWidths=[3*inch, 3*inch])
-        premium_table.setStyle(TableStyle([
-            # Header row styling
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4A23AD')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica'),
+            # Create premium/discount table
+            primary_color = colors.HexColor('#4A23AD')  # Purple
+            accent_color = colors.HexColor('#FF5A6F')   # Coral
+            premium_color = colors.HexColor('#2E8B57')  # Green for premium
+            discount_color = colors.HexColor('#D32F2F')  # Red for discount
+            header_color = colors.HexColor('#455A64')   # Dark slate for header
+            light_purple = colors.HexColor('#EAE6F5')   # Light purple for alternating rows
+    
+            premium_table = Table(premium_data, colWidths=[3*inch, 3*inch])
+            # SAFE STYLING for premium table
+            premium_total_rows = len(premium_data)
+            premium_style_commands = [
+                # Header row styling
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4A23AD')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica'),
+                # Data rows styling
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
+                # Cell padding for better spacing
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                # Borders - more subtle
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
+            ]
+    
+            # ONLY add alternating backgrounds if enough rows
+            if premium_total_rows >= 3:
+                premium_style_commands.append(('BACKGROUND', (0, 2), (-1, 2), colors.HexColor('#EAE6F5')))
+            if premium_total_rows >= 5:
+                premium_style_commands.append(('BACKGROUND', (0, 4), (-1, 4), colors.HexColor('#EAE6F5')))
+    
+            premium_table.setStyle(TableStyle(premium_style_commands))
+            elements.append(premium_table)
 
-            # Data rows styling
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),  # Make first column bold
+        else:
+            elements.append(Paragraph("Premium/discount analysis not available.", self.styles['ReportBody']))
 
-
-            # Cell padding for better spacing
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
-
-            # Borders - more subtle
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
-
-            # Alternating row colors for readability
-            ('BACKGROUND', (0, 2), (-1, 2), colors.HexColor('#EAE6F5')),
-            ('BACKGROUND', (0, 4), (-1, 4), colors.HexColor('#EAE6F5')),
-        ]))
-
-        elements.append(premium_table)
         elements.append(Spacer(1, 0.1*inch))
-
-    # Replace the _add_comparables_analysis method in your landlord_report.py with this fixed version:
 
     def _add_comparables_analysis(self, elements, report_data):
         """Add the comparables analysis section with safe table handling for few/no comparables"""
