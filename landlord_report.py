@@ -233,7 +233,7 @@ class LandlordReportGenerator:
 
         # Generate the PDF
         doc.build(elements)
-        print(f"PDF report generated: {filepath}")
+        # print(f"PDF report generated: {filepath}")
         return filepath
 
     def _add_header(self, elements, report_data):
@@ -1424,26 +1424,6 @@ import shap
 plt.style.use('seaborn-v0_8')
 sns.set_palette("Set2")
 plt.rcParams.update({'font.size': 12, 'figure.figsize': (12, 8)})
-
-def generate_report_for_streamlit(property_data, full_dataset, ml_model=None, 
-                                feature_names=None, label_encoders=None, 
-                                rent_estimates=None):
-    # """
-    # Streamlit-friendly wrapper for generate_landlord_report
-    # """
-    try:
-        return generate_landlord_report(
-            property_data=property_data,
-            full_dataset=full_dataset,
-            ml_model=ml_model,
-            feature_names=feature_names,
-            label_encoders=label_encoders,
-            generate_plots=False,  # Generate plots lazily for better performance
-            rent_estimates=rent_estimates
-        )
-    except Exception as e:
-        print(f"Error in generate_report_for_streamlit: {e}")
-        raise e
 
 # Sample data preprocessing function
 def prepare_data(df):
