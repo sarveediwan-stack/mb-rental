@@ -661,7 +661,8 @@ if df is not None and len(df) > 0:
     # Compact status bar instead of big success boxes
     status_col1, status_col2, status_col3 = st.columns([3, 3, 4])
     with status_col1:
-        st.caption(f"📊 Data: {len(df)} properties")
+        st.markdown(f"<span style='color: green'>📊 Data: {len(df)} properties</span>", unsafe_allow_html=True)
+        # st.caption(f"📊 Data: {len(df)} properties")
 
     # Ensure reports directory exists
     os.makedirs("reports", exist_ok=True)    
@@ -674,15 +675,19 @@ if df is not None and len(df) > 0:
         models = train_models(df)
     with status_col2:
         if models is not None:
-            st.caption("🤖 Models: Ready")
+            st.markdown("<span style='color: green'>🤖 Models: Ready</span>", unsafe_allow_html=True)
+            # st.caption("🤖 Models: Ready")
         else:
-            st.caption("🤖 Models: Failed")
+            st.markdown("<span style='color: red'>🤖 Models: Failed</span>", unsafe_allow_html=True)
+            # st.caption("🤖 Models: Failed")
     with status_col3:
         # Check if landlord report functionality is available
         if not LANDLORD_REPORT_AVAILABLE:
-            st.caption("📋 Reports: Unavailable")
+            st.markdown("<span style='color: red'>📋 Reports: Unavailable</span>", unsafe_allow_html=True)
+            # st.caption("📋 Reports: Unavailable")
         else:
-            st.caption("📋 Reports: Ready")
+            st.markdown("<span style='color: green'>📋 Reports: Ready</span>", unsafe_allow_html=True)
+            # st.caption("📋 Reports: Ready")
 
     if models is None:
         st.error("❌ Model training failed! Some features may not work properly.")
