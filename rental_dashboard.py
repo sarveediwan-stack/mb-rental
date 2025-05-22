@@ -670,11 +670,14 @@ if df is not None and len(df) > 0:
     
     if models is not None:
         st.success("✅ Models trained successfully!")
-        
-    if LANDLORD_REPORT_AVAILABLE:
-        tabs = st.tabs(["Rent Prediction", "Comparable Properties", "Data Exploration", "Landlord Report"])
     else:
-        tabs = st.tabs(["Rent Prediction", "Comparable Properties", "Data Exploration", "Landlord Report (Unavailable)"])
+        st.error("❌ Model training failed!")
+
+        
+        if LANDLORD_REPORT_AVAILABLE:
+            tabs = st.tabs(["Rent Prediction", "Comparable Properties", "Data Exploration", "Landlord Report"])
+        else:
+            tabs = st.tabs(["Rent Prediction", "Comparable Properties", "Data Exploration", "Landlord Report (Unavailable)"])
 
         # # Create tabs for different functionality
         # tabs = st.tabs(["Rent Prediction", "Comparable Properties", "Data Exploration","Landlord Report"])
