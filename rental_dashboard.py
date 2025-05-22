@@ -39,7 +39,7 @@ st.set_page_config(
 )
 
 # App title and description
-st.header("🏠 Magicbricks Rental Analysis Dashboard")
+st.header("Magicbricks Rental Analysis Dashboard")
 # st.markdown("""
 # This app analyzes rental property data to predict rents and find comparable properties.
 # """)
