@@ -13,6 +13,8 @@ from geopy.distance import geodesic
 import os
 import io
 from datetime import datetime
+from area_based_estimation import estimate_rent_improved_area_based, estimate_rent_alternative_enhanced
+
 
 # Add these specific imports for the landlord report functionality:
 try:
