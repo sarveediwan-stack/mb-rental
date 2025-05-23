@@ -935,9 +935,9 @@ if df is not None and len(df) > 0:
                         else:
                             st.info("No properties found.")
                     
+                    st.success(f"Available columns: {same_society.columns.tolist()}")
                     # Display properties in each tab
                     with comp_tabs[0]:
-                        st.write(f"Available columns: {same_society.columns.tolist()}")
                         display_properties(same_society, label_encoders)
                     
                     with comp_tabs[1]:
