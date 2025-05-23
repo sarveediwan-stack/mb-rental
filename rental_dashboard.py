@@ -770,7 +770,7 @@ if df is not None and len(df) > 0:
                     st.metric("Model B (Log Rent)", f"₹{results['model_b_log_prediction']:,.0f}/month")
 
                 with col3:
-                    st.metric("Rent/sqft Estimate", f"₹{estimated_rent:,.0f}/month")
+                    st.metric("NEW Rent/sqft Estimate", f"₹{estimated_rent:,.0f}/month")
 
                 # Display explanation
                 with st.expander("Model Explanation"):
