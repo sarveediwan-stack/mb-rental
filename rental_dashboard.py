@@ -884,6 +884,7 @@ if df is not None and len(df) > 0:
                     col1, col2, col3 = st.columns(3)
                     with col1:
                         st.metric("Same Society", f"{same_society.shape[0]} properties")
+                        st.metric(f"Available columns: {same_society.columns.tolist()}")
                     with col2:
                         st.metric(f"Same BHK ({comp_bhk})", f"{same_bhk.shape[0]} properties")
                     with col3:
@@ -935,7 +936,6 @@ if df is not None and len(df) > 0:
                         else:
                             st.info("No properties found.")
                     
-                    st.success(f"Available columns: {same_society.columns.tolist()}")
                     # Display properties in each tab
                     with comp_tabs[0]:
                         display_properties(same_society, label_encoders)
