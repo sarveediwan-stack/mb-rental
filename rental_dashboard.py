@@ -845,7 +845,7 @@ if df is not None and len(df) > 0:
 
     # Comparable Properties Tab
     with tabs[1]:
-        st.header("Comparable Properties")
+        st.header("Comparable Properties SD")
         with st.form(key="comparable_search_form"):
             # Input for comparable search
             col1, col2 = st.columns(2)
