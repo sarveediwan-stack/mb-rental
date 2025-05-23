@@ -845,7 +845,7 @@ if df is not None and len(df) > 0:
 
     # Comparable Properties Tab
     with tabs[1]:
-        st.header("Comparable Properties SD")
+        st.header("Comparable Properties")
         with st.form(key="comparable_search_form"):
             # Input for comparable search
             col1, col2 = st.columns(2)
@@ -883,7 +883,7 @@ if df is not None and len(df) > 0:
                     # Display counts
                     col1, col2, col3 = st.columns(3)
                     with col1:
-                        st.metric("Same Society SD", f"{same_society.shape[0]} properties")
+                        st.metric("Same Society", f"{same_society.shape[0]} properties")
                     with col2:
                         st.metric(f"Same BHK ({comp_bhk})", f"{same_bhk.shape[0]} properties")
                     with col3:
