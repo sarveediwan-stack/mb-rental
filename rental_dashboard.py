@@ -1117,13 +1117,17 @@ if df is not None and len(df) > 0:
                     )
                     
                     # Get area-based estimate
-                    area_estimate = estimate_rent_alternative(
-                        df, label_encoders,
-                        area=property_data['builtup_area'],
-                        locality=property_data['locality'],
-                        society=property_data['society'],
-                        furnishing=property_data['furnishing']
-                    )
+                    area_results = estimate_rent_improved_area_based(input_property,df,label_encoders)
+                    area_estimate = area_results['estimated_rent']
+
+                    
+                    # area_estimate = estimate_rent_alternative(
+                    #     df, label_encoders,
+                    #     area=property_data['builtup_area'],
+                    #     locality=property_data['locality'],
+                    #     society=property_data['society'],
+                    #     furnishing=property_data['furnishing']
+                    # )
                     
                     # Combine estimates for the report
                     rent_estimates = {
