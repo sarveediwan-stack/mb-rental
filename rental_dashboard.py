@@ -907,7 +907,7 @@ if df is not None and len(df) > 0:
                             
                             # Select and rename columns for display
                             cols_to_display = ['society', 'locality', 'bedrooms', 'bathrooms', 
-                                                'builtup_area', 'furnishing', 'rent', 'floor', 
+                                                'builtup_area', 'furnishing', 'total_rent', 'floor', 
                                                 'total_floors']
                             
                             if 'distance_km' in display_df.columns:
@@ -916,13 +916,13 @@ if df is not None and len(df) > 0:
                             display_df = display_df[[c for c in cols_to_display if c in display_df.columns]]
                             
                             # Format rent as currency
-                            if 'rent' in display_df.columns:
-                                display_df['rent'] = display_df['rent'].apply(lambda x: f"₹{x:,.0f}")
+                            if 'total_rent' in display_df.columns:
+                                display_df['total_rent'] = display_df['total_rent'].apply(lambda x: f"₹{x:,.0f}")
                             
                             # Calculate and add rent per sqft
-                            if 'rent' in properties_df.columns and 'builtup_area' in properties_df.columns:
+                            if 'total_rent' in properties_df.columns and 'builtup_area' in properties_df.columns:
                                 display_df['rent_per_sqft'] = (
-                                    pd.to_numeric(properties_df['rent']) / 
+                                    pd.to_numeric(properties_df['total_rent']) / 
                                     properties_df['builtup_area']
                                 ).apply(lambda x: f"₹{x:.1f}")
                             
