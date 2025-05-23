@@ -3112,7 +3112,7 @@ def generate_landlord_report(property_data, full_dataset, ml_model=None, feature
 
     if rent_estimates:
         # Calculate combined estimate (average of model B and sqft method)
-        combined_estimate = (rent_estimates.get('model_b', 0) + rent_estimates.get('sqft_method', 0)) / 2
+        combined_estimate = 0.33 * rent_estimates.get('model_a', 0) + 0.33 * rent_estimates.get('model_b', 0) + 0.34 * rent_estimates.get('sqft_method', 0)
 
     # Find comparable properties using the hierarchical approach
     comparables_dict = find_comparable_properties(property_data, full_dataset)
