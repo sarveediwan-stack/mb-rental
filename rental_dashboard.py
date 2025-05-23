@@ -896,6 +896,7 @@ if df is not None and len(df) > 0:
                     def display_properties(properties_df, label_encoders):
                         if not properties_df.empty:
                             # Create a copy to avoid modifying the original
+                            st.write(f"Available columns: {properties_df.columns.tolist()}")
                             display_df = properties_df.copy()
                             
                             # Decode categorical columns
