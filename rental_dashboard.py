@@ -1117,7 +1117,7 @@ if df is not None and len(df) > 0:
                     )
                     
                     # Get area-based estimate
-                    area_results = estimate_rent_improved_area_based(input_property,df,label_encoders)
+                    area_results = estimate_rent_improved_area_based(property_data,df,label_encoders)
                     area_estimate = area_results['estimated_rent']
 
                     
