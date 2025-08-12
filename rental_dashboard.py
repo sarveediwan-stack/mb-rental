@@ -428,7 +428,7 @@ def train_models(df):
         return None
     df['log_builtup_area'] = np.log1p(df['builtup_area'])
     features = ['bedrooms', 'builtup_area', 'bathrooms', 'furnishing', 'locality', 
-               'society', 'floor', 'total_floors', 'building_age']
+               'society', 'floor', 'total_floors', 'building_age','floor_to_total_floors','area_per_bedroom','bath_per_bedroom', 'is_premium_society','is_premium_locality','is_top_floor','is_ground_floor']
     
     # Make sure all features exist
     features = [f for f in features if f in df.columns]
@@ -523,7 +523,7 @@ def predict_rent_dual(input_data, models, label_encoders):
     # Make predictions
     try:
         features = ['bedrooms', 'builtup_area', 'bathrooms', 'furnishing', 'locality', 
-               'society', 'floor', 'total_floors', 'building_age']
+               'society', 'floor', 'total_floors', 'building_age','floor_to_total_floors','area_per_bedroom','bath_per_bedroom', 'is_premium_society','is_premium_locality','is_top_floor','is_ground_floor']
 
         # Select model features
         features_with_log = [f if f != 'builtup_area' else 'log_builtup_area' for f in features]
