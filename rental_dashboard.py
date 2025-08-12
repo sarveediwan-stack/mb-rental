@@ -253,12 +253,20 @@ def load_and_process_data():
         if 'bathrooms' in df.columns:
             df = df[(df['bathrooms'] >= 1) & (df['bathrooms'] <= 7)]
 
+        # Calculate these BEFORE encoding
+        locality_avg_rent = df.groupby('locality')['total_rent'].mean()
+        overall_median_rent = df['total_rent'].median()
+        society_avg_rent = df.groupby('society')['total_rent'].mean()
+        premium_localities = locality_avg_rent[locality_avg_rent > overall_median_rent].index.tolist()
+        premium_societies = society_avg_rent[society_avg_rent > overall_median_rent].index.tolist()
+        
+        # Price premium indicators
+        df['is_premium_locality'] = df['locality'].isin(premium_localities).astype(int)
+        df['is_premium_society'] = df['society'].isin(premium_societies).astype(int)
+
         # Create the 'area per bedroom' feature
         df['area_per_bedroom'] = df['builtup_area'] / df['bedrooms']
         df['bath_per_bedroom'] = df['bathrooms'] / df['bedrooms']
-        # Price premium indicators
-        df['is_premium_locality'] = df.groupby('locality')['total_rent'].transform('mean') > df['total_rent'].median()
-        df['is_premium_society'] = df.groupby('society')['total_rent'].transform('mean') > df['total_rent'].median()
         # Relative position in building
         df['is_top_floor'] = (df['floor'] == df['total_floors']).astype(int)
         df['is_ground_floor'] = (df['floor'] == 0).astype(int)
@@ -278,10 +286,26 @@ def load_and_process_data():
         ensure_data_dir()
         df.to_csv('data/processed_data.csv', index=False)
         # st.success(f"✅ Data AFTER ALL DONE successfully: {len(df)} properties")
-        return df, label_encoders
+        premium_localities_encoded = set()
+        for loc in premium_localities:
+            try:
+                encoded = label_encoders['locality'].transform([str(loc)])[0]
+                premium_localities_encoded.add(encoded)
+            except:
+                pass
+        
+        premium_societies_encoded = set()
+        for soc in premium_societies:
+            try:
+                encoded = label_encoders['society'].transform([str(soc)])[0]
+                premium_societies_encoded.add(encoded)
+            except:
+                pass
+        
+        return df, label_encoders, premium_localities_encoded, premium_societies_encoded
     except Exception as e:
         st.error(f"Error loading data: {e}")
-        return None, None
+        return None, None, None, None
 
 
 def build_society_locality_map(df, label_encoders):
@@ -389,7 +413,7 @@ def apply_canonical_locality_to_dataset(df, label_encoders):
 
 
 
-def predict_rent_with_canonical_locality(input_data, society_locality_map, models, label_encoders):
+def predict_rent_with_canonical_locality(input_data, society_locality_map, models, label_encoders, premium_localities_encoded, premium_societies_encoded):
     """
     Ensures consistent locality is used for a given society before prediction.
     
@@ -420,7 +444,7 @@ def predict_rent_with_canonical_locality(input_data, society_locality_map, model
             input_copy['locality'] = canonical_locality
     
     # Now make the prediction with the adjusted input
-    return predict_rent_dual(input_copy, models, label_encoders)
+    return predict_rent_dual(input_copy, models, label_encoders, premium_localities_encoded, premium_societies_encoded)
 
 # Function to train prediction models
 def train_models(df):
@@ -491,7 +515,7 @@ def train_models(df):
         return None
 
 # Function to predict rent
-def predict_rent_dual(input_data, models, label_encoders):
+def predict_rent_dual(input_data, models, label_encoders, premium_localities_encoded, premium_societies_encoded):
     if models is None:
         return {'model_a_raw_prediction': 0, 'model_b_log_prediction': 0}
     
@@ -511,8 +535,10 @@ def predict_rent_dual(input_data, models, label_encoders):
     input_df['area_per_bedroom'] = input_df['builtup_area'] / input_df['bedrooms']
     input_df['bath_per_bedroom'] = input_df['bathrooms'] / input_df['bedrooms']
     # Price premium indicators
-    input_df['is_premium_locality'] = input_df.groupby('locality')['total_rent'].transform('mean') > df['total_rent'].median()
-    input_df['is_premium_society'] = input_df.groupby('society')['total_rent'].transform('mean') > df['total_rent'].median()
+    # Premium indicators using the encoded sets
+    input_df['is_premium_locality'] = input_df['locality'].isin(premium_localities_encoded).astype(int)
+    input_df['is_premium_society'] = input_df['society'].isin(premium_societies_encoded).astype(int)
+
     # Relative position in building
     input_df['is_top_floor'] = (input_df['floor'] == input_df['total_floors']).astype(int)
     input_df['is_ground_floor'] = (input_df['floor'] == 0).astype(int)
@@ -677,8 +703,8 @@ def generate_shap_waterfall(model, features, input_data, feature_names, label_en
     return fig
 
 # Main app logic 
-# Main app logic 
-df, label_encoders = load_and_process_data()
+df, label_encoders, premium_localities_encoded, premium_societies_encoded = load_and_process_data()
+
 
 if df is not None and len(df) > 0:
     # st.success(f"✅ Data loaded successfully: {len(df)} properties")
@@ -775,7 +801,7 @@ if df is not None and len(df) > 0:
                 with st.spinner("Predicting..."):
                     # ML-based Prediction
                     society_locality_map = build_society_locality_map(df, label_encoders)
-                    results = predict_rent_with_canonical_locality(input_property, society_locality_map, models, label_encoders)
+                    results = predict_rent_with_canonical_locality(input_property, society_locality_map, models, label_encoders, premium_localities_encoded, premium_societies_encoded)
                     # estimated_rent = estimate_rent_alternative(df,label_encoders,area=input_property['builtup_area'],locality=input_property['locality'],society=input_property['society'],furnishing=input_property['furnishing'])
                     area_results = estimate_rent_improved_area_based(input_property,df,label_encoders)
                     estimated_rent = area_results['estimated_rent']
@@ -836,14 +862,24 @@ if df is not None and len(df) > 0:
                         
                         # Add log transformation for builtup_area
                         input_df['log_builtup_area'] = np.log1p(input_df['builtup_area'])
+
+                        # Add premium indicators and other features
+                        input_df['area_per_bedroom'] = input_df['builtup_area'] / input_df['bedrooms']
+                        input_df['bath_per_bedroom'] = input_df['bathrooms'] / input_df['bedrooms']
+                        input_df['is_top_floor'] = (input_df['floor'] == input_df['total_floors']).astype(int)
+                        input_df['is_ground_floor'] = (input_df['floor'] == 0).astype(int)
                         
-                        # Encode categorical variables
+                        # Encode categorical variables first
                         for col in ['furnishing', 'locality', 'society']:
                             try:
                                 if col in input_df.columns and col in label_encoders:
                                     input_df[col] = label_encoders[col].transform(input_df[col].astype(str))
                             except ValueError as e:
                                 st.error(f"Value '{input_df[col][0]}' not found in training data for column {col}")
+                        
+                        # Then add premium indicators using encoded values
+                        input_df['is_premium_locality'] = input_df['locality'].isin(premium_localities_encoded).astype(int)
+                        input_df['is_premium_society'] = input_df['society'].isin(premium_societies_encoded).astype(int)
                         
                         # Select model features
                         input_features = input_df[features_with_log]
@@ -1135,7 +1171,7 @@ if df is not None and len(df) > 0:
                     
                     # Get ML predictions
                     ml_results = predict_rent_with_canonical_locality(
-                        property_data, society_locality_map, models, label_encoders
+                        property_data, society_locality_map, models, label_encoders, premium_localities_encoded, premium_societies_encoded
                     )
                     
                     # Get area-based estimate
