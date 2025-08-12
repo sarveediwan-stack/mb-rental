@@ -507,6 +507,18 @@ def predict_rent_dual(input_data, models, label_encoders):
     # Add log transformation for builtup_area
     input_df['log_builtup_area'] = np.log1p(input_df['builtup_area'])
 
+    # Create the 'area per bedroom' feature
+    input_df['area_per_bedroom'] = input_df['builtup_area'] / input_df['bedrooms']
+    input_df['bath_per_bedroom'] = input_df['bathrooms'] / input_df['bedrooms']
+    # Price premium indicators
+    input_df['is_premium_locality'] = input_df.groupby('locality')['total_rent'].transform('mean') > df['total_rent'].median()
+    input_df['is_premium_society'] = input_df.groupby('society')['total_rent'].transform('mean') > df['total_rent'].median()
+    # Relative position in building
+    input_df['is_top_floor'] = (input_df['floor'] == input_df['total_floors']).astype(int)
+    input_df['is_ground_floor'] = (input_df['floor'] == 0).astype(int)
+
+
+    
     # Encode categorical variables
     for col in ['furnishing', 'locality', 'society']:
         try:
