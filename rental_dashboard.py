@@ -252,6 +252,16 @@ def load_and_process_data():
             df = df[(df['bedrooms'] >= 1) & (df['bedrooms'] <= 7)]
         if 'bathrooms' in df.columns:
             df = df[(df['bathrooms'] >= 1) & (df['bathrooms'] <= 7)]
+
+        # Create the 'area per bedroom' feature
+        df['area_per_bedroom'] = df['builtup_area'] / df['bedrooms']
+        df['bath_per_bedroom'] = df['bathrooms'] / df['bedrooms']
+        # Price premium indicators
+        df['is_premium_locality'] = df.groupby('locality')['total_rent'].transform('mean') > df['total_rent'].median()
+        df['is_premium_society'] = df.groupby('society')['total_rent'].transform('mean') > df['total_rent'].median()
+        # Relative position in building
+        df['is_top_floor'] = (df['floor'] == df['total_floors']).astype(int)
+        df['is_ground_floor'] = (df['floor'] == 0).astype(int)
         
         # Encode categorical variables
         label_encoders = {}
