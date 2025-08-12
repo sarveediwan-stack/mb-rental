@@ -382,7 +382,7 @@ class LandlordReportGenerator:
         elements.append(Spacer(1, 0.1*inch))
 
         # Add explanation text
-        estimate_text = f"Based on our analysis, we estimate the optimal rent for your property to be " \
+        estimate_text = f"Based on our analysis, we estimate the optimal rent (incl. maintenance) for your property to be " \
                       f"<font color='#FF5A6F'><b>Rs. {combined_estimate:,.0f}</b></font> per month. " \
                       f"This estimate has a range of Rs. {lower_bound:,.0f} to Rs. {upper_bound:,.0f}, " \
                       f"reflecting market conditions and property features."
